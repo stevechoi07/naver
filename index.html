@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v6.0 - AI 유전자 분석 시스템</title>
+    <title>HTML 청진기 v6.1 - AI 키워드 히트맵</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -17,14 +17,19 @@
         .modal-overlay {
             transition: opacity 0.3s ease;
         }
+        .heatmap-cell {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.0</h1>
-            <p class="text-lg text-gray-600 mt-2">'AI 유전자 분석 시스템' 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.1</h1>
+            <p class="text-lg text-gray-600 mt-2">'AI 키워드 히트맵' 에디션</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
@@ -137,7 +142,7 @@
         let currentAnalysisKeywords = [];
 
         // --- localStorage Logic ---
-        const STORAGE_KEY = 'analyzedProducts_v6';
+        const STORAGE_KEY = 'analyzedProducts_v6_1';
 
         function getAnalyzedProducts() {
             const data = localStorage.getItem(STORAGE_KEY);
@@ -379,22 +384,30 @@
                  keywordAnalysisHtml = `
                     <div class="mt-3 pt-3 border-t border-dashed">
                         <h5 class="font-bold text-xs text-gray-700 mb-2">🧬 키워드 DNA 분석</h5>
-                        <div class="space-y-1 text-xs">
+                        <table class="w-full text-xs text-center">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="p-1 border">키워드</th>
+                                    <th class="p-1 border">제목</th>
+                                    <th class="p-1 border">속성</th>
+                                    <th class="p-1 border">태그</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                 `;
                 for (const keyword in keywordAnalysis) {
                     const counts = keywordAnalysis[keyword];
                     keywordAnalysisHtml += `
-                        <p>
-                            <strong class="font-semibold text-indigo-600">${keyword}:</strong>
-                            <span class="ml-2">제목: ${counts.title}</span> |
-                            <span class="ml-1">속성: ${counts.attributes}</span> |
-                            <span class="ml-1">태그: ${counts.tags}</span>
-                        </p>
+                        <tr>
+                            <td class="p-1 border font-semibold text-indigo-600">${keyword}</td>
+                            <td class="p-1 border"><div class="heatmap-cell ${counts.title ? 'bg-green-500' : 'bg-gray-200'} mx-auto"></div></td>
+                            <td class="p-1 border"><div class="heatmap-cell ${counts.attributes ? 'bg-green-500' : 'bg-gray-200'} mx-auto"></div></td>
+                            <td class="p-1 border"><div class="heatmap-cell ${counts.tags ? 'bg-green-500' : 'bg-gray-200'} mx-auto"></div></td>
+                        </tr>
                     `;
                 }
-                keywordAnalysisHtml += `</div></div>`;
+                keywordAnalysisHtml += `</tbody></table></div>`;
             }
-
 
             resultCard.innerHTML = `
                 <button data-doc-id="${id}" data-product-name="${productName}" class="delete-btn absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors" title="이 분석 기록 삭제">
@@ -402,14 +415,20 @@
                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                 </button>
-                <div class="flex items-start space-x-4 pr-6">
-                    <span class="text-2xl font-bold text-gray-400 w-10 text-center">${rank || '-'}</span>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-base text-gray-900">${productName}</h4>
-                        <div class="mt-2 text-xs space-y-2">
-                            <p><strong class="font-semibold text-gray-600">속성:</strong> <span class="text-gray-800">${attributeValues || 'N/A'}</span></p>
-                            <p class="flex items-start"><strong class="font-semibold text-gray-600 mr-2 flex-shrink-0">태그:</strong> <span class="flex flex-wrap gap-1">${tagSpans || 'N/A'}</span></p>
+                <div class="grid grid-cols-3 gap-4 pr-6">
+                    <div class="col-span-2">
+                        <div class="flex items-start space-x-4">
+                            <span class="text-2xl font-bold text-gray-400 w-10 text-center">${rank || '-'}</span>
+                            <div class="flex-grow">
+                                <h4 class="font-bold text-base text-gray-900">${productName}</h4>
+                                <div class="mt-2 text-xs space-y-2">
+                                    <p><strong class="font-semibold text-gray-600">속성:</strong> <span class="text-gray-800">${attributeValues || 'N/A'}</span></p>
+                                    <p class="flex items-start"><strong class="font-semibold text-gray-600 mr-2 flex-shrink-0">태그:</strong> <span class="flex flex-wrap gap-1">${tagSpans || 'N/A'}</span></p>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="col-span-1">
                         ${keywordAnalysisHtml}
                     </div>
                 </div>
