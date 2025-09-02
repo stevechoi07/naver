@@ -1,4 +1,4 @@
-# [v1.6 최종] 두 개의 작전 계획서를 통합한 최종 버전!
+# [v1.6.1 최종] 두 개의 작전 계획서를 통합한 완벽 버전!
 # 이 파일 하나면 빌드, 배포, 함수 실행까지 완벽하게 통제할 수 있다.
 
 # [build] 섹션: Netlify가 우리 사이트를 어떻게 만들지 알려주는 부분
@@ -18,10 +18,20 @@
   # 우리 요원이 타임아웃으로 실종되지 않도록 작전 시간을 25초로 넉넉하게 보장!
   timeout = 25
 
+  # 친구가 사용하던 전문가용 설정! 그대로 유지하자.
+  node_bundler = "esbuild"
+  # 'node-fetch'는 지금은 안 쓰지만, 나중을 위해 남겨두자.
+  external_node_modules = ["node-fetch"]
+
 # [[redirects]] 섹션: 특정 주소로 들어온 요청을 다른 곳으로 보내주는 규칙
 # 친구가 쓰던 전문가용 API 경로 단축 규칙! 그대로 사용하자.
-# 이제 '/.netlify/functions/fetch-info' 대신 '/api/fetch-info'로도 호출할 수 있게 돼.
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+
+# 친구가 쓰던 사이트맵 규칙도 유지!
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
   status = 200
