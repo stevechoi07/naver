@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v4.1 - 종합 데이터 분석 센터</title>
+    <title>HTML 청진기 v5.0 - 영구 기록 데이터 센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .result-grid { display: grid; grid-template-columns: 100px 1fr; gap: 8px; }
-        @media (max-width: 768px) {
-            .result-grid { grid-template-columns: 80px 1fr; }
-        }
         #search-results::-webkit-scrollbar, #html-input::-webkit-scrollbar, #analyzed-results-container::-webkit-scrollbar { width: 8px; }
         #search-results::-webkit-scrollbar-track, #html-input::-webkit-scrollbar-track, #analyzed-results-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px;}
         #search-results::-webkit-scrollbar-thumb, #html-input::-webkit-scrollbar-thumb, #analyzed-results-container::-webkit-scrollbar-thumb { background: #888; border-radius: 10px;}
         #search-results::-webkit-scrollbar-thumb:hover, #html-input::-webkit-scrollbar-thumb:hover, #analyzed-results-container::-webkit-scrollbar-thumb:hover { background: #555; }
         .product-card { transition: all 0.2s ease-in-out; }
         .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .analyzed { background-color: #e6fffa; border-color: #38a169; }
+        .analyzed { background-color: #f0fdf4; opacity: 0.6; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v4.1</h1>
-            <p class="text-lg text-gray-600 mt-2">'종합 데이터 분석 센터' 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v5.0</h1>
+            <p class="text-lg text-gray-600 mt-2">'영구 기록 데이터 센터' 에디션</p>
         </header>
 
-        <div class="md:grid md:grid-cols-3 md:gap-8">
+        <div class="md:grid md:grid-cols-12 md:gap-8">
             <!-- Left Column: Keyword Search Tool -->
-            <div class="md:col-span-1 w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 mb-8 md:mb-0">
+            <div class="md:col-span-4 w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 mb-8 md:mb-0">
                 <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
                 <div>
                     <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">1. 네이버 쇼핑 키워드:</label>
@@ -49,7 +45,7 @@
             </div>
 
             <!-- Right Column: HTML Stethoscope -->
-            <div class="md:col-span-2 w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4">
+            <div class="md:col-span-8 w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4">
                  <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
                  <div class="text-sm text-gray-600 -mt-3 bg-blue-50 p-3 rounded-lg">
                     <p class="font-semibold">✨ 사용 가이드:</p>
@@ -68,7 +64,12 @@
                 <div id="status-message" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
                 
                 <div id="analyzed-section" class="space-y-4">
-                     <h3 class="text-xl font-semibold border-b border-gray-200 pb-2">📝 분석 완료 목록</h3>
+                     <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                        <h3 class="text-xl font-semibold">📝 분석 완료 목록</h3>
+                        <button id="clear-analyzed-button" class="bg-red-500 text-white text-xs font-bold py-1 px-3 rounded-lg hover:bg-red-600 transition duration-200">
+                            전체 삭제
+                        </button>
+                    </div>
                      <div id="analyzed-results-container" class="h-96 overflow-y-auto p-2 bg-gray-50 rounded-lg space-y-3">
                         <p class="text-gray-500 text-center mt-4">분석된 상품이 여기에 표시됩니다.</p>
                      </div>
@@ -93,27 +94,96 @@
         </div>
     </div>
     
-    <script>
-        // Global state to store current search results
-        let currentSearchResults = [];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // --- DOM Elements ---
         const searchButton = document.getElementById('search-button');
         const keywordInput = document.getElementById('keyword-input');
         const searchResultsContainer = document.getElementById('search-results');
         const searchStatus = document.getElementById('search-status');
-        
         const analyzeButton = document.getElementById('analyze-button');
         const htmlInput = document.getElementById('html-input');
         const statusMessage = document.getElementById('status-message');
-        
         const analyzedResultsContainer = document.getElementById('analyzed-results-container');
-        
+        const clearAnalyzedButton = document.getElementById('clear-analyzed-button');
         const debugContainer = document.querySelector('details');
         const debugAttributesCount = document.getElementById('debug-attributes-count');
         const debugAttributesHtml = document.getElementById('debug-attributes-html');
         const debugTagsCount = document.getElementById('debug-tags-count');
         const debugTagsHtml = document.getElementById('debug-tags-html');
 
+        // --- Global State ---
+        let currentSearchResults = [];
+        let analyzedProductLinks = new Set();
+        let db, auth, userId, analyzedCollectionRef;
+        let unsubscribe; // To store the onSnapshot listener
+
+        // --- Firebase Setup ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    setupFirestoreListeners();
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase Auth Error:", error);
+                        showAnalyzeMessage("인증 실패. 데이터를 저장할 수 없습니다.", 'error');
+                    }
+                }
+            });
+        } else {
+             showAnalyzeMessage("Firebase 설정이 없어 데이터 저장이 비활성화되었습니다.", 'error');
+        }
+
+        function setupFirestoreListeners() {
+            if (unsubscribe) unsubscribe(); // Unsubscribe from previous listener if exists
+            analyzedCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/analyzed_products`);
+            const q = query(analyzedCollectionRef, orderBy("timestamp", "desc"));
+            
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const products = [];
+                snapshot.forEach((doc) => {
+                    products.push({ id: doc.id, ...doc.data() });
+                });
+                renderAnalyzedProducts(products);
+            }, (error) => {
+                console.error("Firestore onSnapshot error: ", error);
+                showAnalyzeMessage("데이터를 실시간으로 불러오는 데 실패했습니다.", "error");
+            });
+        }
+
+        function renderAnalyzedProducts(products) {
+            analyzedResultsContainer.innerHTML = '';
+            analyzedProductLinks.clear();
+
+            if (products.length === 0) {
+                analyzedResultsContainer.innerHTML = '<p class="text-gray-500 text-center mt-4">분석된 상품이 여기에 표시됩니다.</p>';
+            } else {
+                products.forEach(product => {
+                    analyzedProductLinks.add(product.link);
+                    addAnalyzedCardToDOM(product);
+                });
+            }
+            updateAnalyzedStyles(); // Re-apply styles to the left panel
+        }
+        
+        // --- UI Logic ---
         const setLoadingState = (isLoading, type = 'all') => {
             if (type === 'search' || type === 'all') {
                 searchButton.disabled = isLoading;
@@ -126,12 +196,51 @@
                 analyzeButton.classList.toggle('opacity-50', isLoading);
             }
         };
+
+        function showSearchMessage(message, type) {
+            searchStatus.textContent = message;
+            searchStatus.className = 'text-center p-3 rounded-lg text-sm';
+            searchStatus.classList.remove('hidden');
+            const typeClasses = { loading: 'bg-yellow-100 text-yellow-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
+            if(typeClasses[type]) searchStatus.classList.add(...typeClasses[type].split(' '));
+        }
         
+        function showAnalyzeMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'text-center p-3 rounded-lg text-sm';
+            statusMessage.classList.remove('hidden');
+            const typeClasses = { loading: 'bg-blue-100 text-blue-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
+            if(typeClasses[type]) statusMessage.classList.add(...typeClasses[type].split(' '));
+        }
+
+        // --- Event Handlers ---
         searchButton.addEventListener('click', handleSearch);
         keywordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleSearch();
         });
         
+        analyzeButton.addEventListener('click', handleManualAnalysis);
+        
+        clearAnalyzedButton.addEventListener('click', async () => {
+             if (!analyzedCollectionRef) return;
+             if (confirm('정말로 모든 분석 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                showAnalyzeMessage('모든 기록 삭제 중...', 'loading');
+                try {
+                    const querySnapshot = await getDocs(analyzedCollectionRef);
+                    const deletePromises = [];
+                    querySnapshot.forEach((docSnap) => {
+                        deletePromises.push(deleteDoc(doc(db, analyzedCollectionRef.path, docSnap.id)));
+                    });
+                    await Promise.all(deletePromises);
+                    showAnalyzeMessage('모든 기록이 삭제되었습니다.', 'success');
+                } catch(error) {
+                    console.error("Error clearing collection: ", error);
+                    showAnalyzeMessage('기록 삭제 중 오류가 발생했습니다.', 'error');
+                }
+             }
+        });
+        
+        // --- Core Functions ---
         async function handleSearch() {
             const keyword = keywordInput.value.trim();
             if (!keyword) {
@@ -148,11 +257,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ keyword })
                 });
-                
                 const data = await response.json();
                 if (!response.ok || data.error) throw new Error(data.error || '검색 결과를 가져오지 못했습니다.');
                 
-                currentSearchResults = data.results; // Store results globally
+                currentSearchResults = data.results;
                 showSearchMessage(`"${keyword}" 검색 결과 ${data.results.length}건 분석 완료!`, 'success');
                 displaySearchResults(data.results);
             } catch (error) {
@@ -162,29 +270,23 @@
             }
         }
 
-        function showSearchMessage(message, type) {
-            searchStatus.textContent = message;
-            searchStatus.className = 'text-center p-3 rounded-lg text-sm';
-            searchStatus.classList.remove('hidden');
-            const typeClasses = { loading: 'bg-yellow-100 text-yellow-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
-            if(typeClasses[type]) searchStatus.classList.add(...typeClasses[type].split(' '));
-        }
-
         function displaySearchResults(results) {
             searchResultsContainer.innerHTML = '';
             if (results.length === 0) {
                 searchResultsContainer.innerHTML = '<p class="text-gray-500 text-center mt-4">검색 결과가 없습니다.</p>';
                 return;
             }
-
             results.forEach((product, index) => {
                 const productCard = document.createElement('a');
                 productCard.href = product.link;
                 productCard.target = "_blank";
                 productCard.rel = "noopener noreferrer";
                 productCard.className = 'product-card flex items-center p-2 border border-gray-200 rounded-lg space-x-3';
-                // Use a robust identifier. Title can have special characters. Link is unique.
-                productCard.dataset.productId = product.link; 
+                productCard.dataset.productId = product.link;
+                
+                if (analyzedProductLinks.has(product.link)) {
+                    productCard.classList.add('analyzed');
+                }
 
                 productCard.innerHTML = `
                     <span class="font-bold text-gray-500 w-6 text-center">${index + 1}</span>
@@ -198,22 +300,14 @@
             });
         }
         
-        analyzeButton.addEventListener('click', handleManualAnalysis);
-        
-        // --- BUG FIX: This function was missing! ---
-        function showAnalyzeMessage(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = 'text-center p-3 rounded-lg text-sm';
-            statusMessage.classList.remove('hidden');
-            const typeClasses = { loading: 'bg-blue-100 text-blue-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
-            if(typeClasses[type]) statusMessage.classList.add(...typeClasses[type].split(' '));
-        }
-        // --- END BUG FIX ---
-        
         async function handleManualAnalysis() {
             const htmlContent = htmlInput.value;
             if (!htmlContent.trim()) {
                 showAnalyzeMessage('HTML 코드가 없습니다. 코드를 직접 붙여넣어주세요.', 'error');
+                return;
+            }
+            if (!userId) {
+                showAnalyzeMessage('사용자 인증 중입니다. 잠시 후 다시 시도해주세요.', 'error');
                 return;
             }
             
@@ -233,39 +327,28 @@
                 }
 
                 const data = await response.json();
-                showAnalyzeMessage('분석 완료!', 'success');
-                
                 const productDetails = currentSearchResults.find(p => p.title.trim() === data.productName.trim());
+                const rank = productDetails ? currentSearchResults.indexOf(productDetails) + 1 : '-';
                 
-                if (productDetails) {
-                    const productCardOnLeft = document.querySelector(`[data-product-id="${productDetails.link}"]`);
-                    if (productCardOnLeft) {
-                        productCardOnLeft.classList.add('analyzed');
-                    }
-                    addAnalyzedCard(productDetails, data);
-                } else {
-                     // Handle case where product is not in the list (analyzed from a different search)
-                    addAnalyzedCard({ rank: 'N/A', imageUrl: 'https://placehold.co/80x80/e2e8f0/adb5bd?text=Manually+Added' }, data);
-                }
-
+                await addDoc(analyzedCollectionRef, {
+                    ...data,
+                    rank: rank,
+                    link: productDetails ? productDetails.link : 'manual',
+                    timestamp: new Date()
+                });
+                
+                showAnalyzeMessage('분석 완료 및 저장 성공!', 'success');
                 displayDebugInfo(data.debug);
-                htmlInput.value = ''; // Clear input after analysis
+                htmlInput.value = ''; 
             } catch (error) {
                 showAnalyzeMessage(`분석 실패: ${error.message}`, 'error');
             } finally {
                 setLoadingState(false, 'analyze');
             }
         }
-        
-        function addAnalyzedCard(productDetails, analysisData) {
-            // If it's the first card, clear the placeholder text
-            if (analyzedResultsContainer.querySelector('p')) {
-                analyzedResultsContainer.innerHTML = '';
-            }
 
-            const { productName, attributes, tags } = analysisData;
-            const rank = currentSearchResults.indexOf(productDetails) + 1;
-
+        function addAnalyzedCardToDOM(productData) {
+            const { productName, attributes, tags, rank } = productData;
             const resultCard = document.createElement('div');
             resultCard.className = 'bg-white p-4 rounded-lg border border-gray-200 shadow-sm';
             
@@ -274,10 +357,7 @@
 
             resultCard.innerHTML = `
                 <div class="flex items-start space-x-4">
-                    <div class="flex-shrink-0 flex flex-col items-center">
-                        <span class="text-lg font-bold text-gray-600">${rank > 0 ? rank : '-'}</span>
-                        <img src="${productDetails.imageUrl}" alt="${productName}" class="w-20 h-20 object-cover rounded-md mt-1" onerror="this.onerror=null;this.src='https://placehold.co/80x80/e2e8f0/adb5bd?text=Error';">
-                    </div>
+                    <span class="text-2xl font-bold text-gray-400 w-10 text-center">${rank || '-'}</span>
                     <div class="flex-grow">
                         <h4 class="font-bold text-base text-gray-900">${productName}</h4>
                         <div class="mt-2 text-xs space-y-2">
@@ -287,7 +367,19 @@
                     </div>
                 </div>
             `;
-            analyzedResultsContainer.prepend(resultCard); // Add new card to the top
+            analyzedResultsContainer.prepend(resultCard);
+        }
+
+        function updateAnalyzedStyles() {
+            const productCards = searchResultsContainer.querySelectorAll('.product-card');
+            productCards.forEach(card => {
+                const productId = card.dataset.productId;
+                if (analyzedProductLinks.has(productId)) {
+                    card.classList.add('analyzed');
+                } else {
+                    card.classList.remove('analyzed');
+                }
+            });
         }
         
         function displayDebugInfo(debugData) {
