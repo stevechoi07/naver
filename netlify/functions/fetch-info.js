@@ -1,11 +1,12 @@
-// 스마트스토어 정보 추출기 v1.7
+// [v1.7.1] '인내심 강화 키트' 탑재 버전!
+// 성급한 axios의 타임아웃을 20초로 늘리고, 디버깅 모드를 탑재하여 작전 수행 능력을 강화했다.
 const axios = require('axios');
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
   // 1. URL과 디버그 모드 쿼리 파라미터 가져오기
   const targetUrl = event.queryStringParameters.url;
-  const isDebugMode = event.queryStringParameters.debug === 'true'; // 'debug=true' 파라미터 확인
+  const isDebugMode = event.queryStringParameters.debug === 'true';
 
   if (!targetUrl) {
     return {
@@ -18,7 +19,11 @@ exports.handler = async function (event, context) {
   const fullUrl = `${proxyUrl}${targetUrl}`;
 
   try {
+    // ⭐ 작전명: 성급한 axios 길들이기! ⭐
+    // 기본 대기 시간(약 15초)이 너무 짧아 작전에 실패하는 것을 방지하기 위해,
+    // 대기 시간을 20초(20000ms)로 넉넉하게 설정!
     const response = await axios.get(fullUrl, {
+      timeout: 20000, // 20초 안에 응답이 없으면 작전 실패로 간주!
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
         'Referer': 'https://www.naver.com/',
@@ -28,18 +33,16 @@ exports.handler = async function (event, context) {
 
     const html = response.data;
 
-    // 2. 디버깅 모드가 활성화된 경우, 파싱하지 않고 원본 HTML을 바로 반환
+    // 2. 디버깅 모드가 활성화된 경우, 원본 HTML을 바로 반환
     if (isDebugMode) {
       return {
         statusCode: 200,
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8', // 일반 텍스트로 반환
-        },
-        body: html, // 파싱 안 한 날것 그대로의 HTML
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        body: html,
       };
     }
 
-    // 3. (기존 로직) 디버깅 모드가 아닐 때만 파싱 수행
+    // 3. 디버깅 모드가 아닐 때만 파싱 수행
     const $ = cheerio.load(html);
     let attributes = [];
     let tags = [];
@@ -57,20 +60,17 @@ exports.handler = async function (event, context) {
       $('a[class^="TagGroup_tag__"]').each((i, elem) => {
         tags.push($(elem).text().trim());
       });
-
     } else if (targetUrl.includes('search.shopping.naver.com/catalog')) {
       // 쇼핑 카탈로그 파싱 로직
       $('div[class^="product_info_item__"] div[class^="product_info_basis__"]').each((i, elem) => {
-          const key = $(elem).find('div[class^="product_info_title__"]').text().trim();
-          const value = $(elem).find('div[class^="product_info_value__"]').text().trim();
-          if (key && value) {
-              attributes.push({ key, value });
-          }
+        const key = $(elem).find('div[class^="product_info_title__"]').text().trim();
+        const value = $(elem).find('div[class^="product_info_value__"]').text().trim();
+        if (key && value) {
+          attributes.push({ key, value });
+        }
       });
-      // 카탈로그 페이지는 '관련 태그'가 명확하지 않을 수 있어, 다른 요소를 찾아야 할 수 있음
-      // 예시: 카테고리 정보 가져오기
-       $('a[class^="top_breadcrumb_item__"]').each((i, elem) => {
-          tags.push($(elem).text().trim());
+      $('a[class^="top_breadcrumb_item__"]').each((i, elem) => {
+        tags.push($(elem).text().trim());
       });
     }
 
@@ -78,13 +78,11 @@ exports.handler = async function (event, context) {
       statusCode: 200,
       body: JSON.stringify({ attributes, tags }),
     };
-
   } catch (error) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: '정보를 가져오는 데 실패했습니다.',
-        details: error.message,
+        error: `정보를 가져오는 데 실패했습니다: ${error.message}`,
       }),
     };
   }
