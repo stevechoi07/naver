@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v6.3 - 통합 관제 대시보드</title>
+    <title>HTML 청진기 v6.4 - 통합 관제 대시보드</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body {
             height: 100%;
-            overflow: hidden;
+            overflow: hidden; /* Prevent body scroll */
         }
         body { font-family: 'Inter', sans-serif; }
         .scroll-area::-webkit-scrollbar { width: 8px; }
@@ -32,14 +32,15 @@
 
     <div class="container mx-auto p-4 md:p-8 flex flex-col h-screen">
         <header class="text-center mb-4 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.3</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.4</h1>
             <p class="text-lg text-gray-600 mt-2">'통합 관제 대시보드' 에디션</p>
         </header>
 
-        <div class="flex-grow min-h-0 flex flex-col">
-            <div class="md:grid md:grid-cols-12 md:gap-8 flex-shrink-0">
-                <!-- Left Header -->
-                <div class="md:col-span-4 bg-white rounded-t-2xl shadow-lg p-6 space-y-4">
+        <div class="flex-grow min-h-0 md:grid md:grid-cols-12 md:gap-8">
+            <!-- Left Column -->
+            <div class="md:col-span-4 flex flex-col h-full">
+                <!-- Left Header (Fixed) -->
+                <div class="flex-shrink-0 bg-white rounded-t-2xl shadow-lg p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
                     <div>
                         <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">1. 네이버 쇼핑 키워드:</label>
@@ -51,30 +52,30 @@
                     <div id="search-status" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
                     <div id="analysis-keywords-display" class="hidden text-sm text-gray-600 p-2 bg-gray-100 rounded-md"></div>
                 </div>
-                 <!-- Right Header -->
-                <div class="md:col-span-8 bg-white rounded-t-2xl shadow-lg p-6 space-y-4 mt-8 md:mt-0">
+                <!-- Left Scrollable Content -->
+                <div class="flex-grow min-h-0 bg-white rounded-b-2xl shadow-lg p-6 pt-0 flex flex-col">
+                    <h3 class="text-xl font-semibold border-b border-gray-200 pb-2 mb-3 flex-shrink-0">분석 결과 (1페이지):</h3>
+                    <div id="search-results" class="scroll-area flex-grow overflow-y-auto p-1 space-y-2">
+                        <p class="text-gray-500 text-center mt-4">조사 대기 중...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="md:col-span-8 flex flex-col h-full mt-8 md:mt-0">
+                <!-- Right Header (Fixed) -->
+                <div class="flex-shrink-0 bg-white rounded-t-2xl shadow-lg p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
                     <div>
-                        <textarea id="html-input" rows="6" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="✨ 초간편 사용 가이드:&#10;1. 왼쪽에서 상품을 클릭하여 새 탭으로 여세요.&#10;2. 새 탭에서 F12를 누르고 HTML 전체를 복사하세요.&#10;3. 여기에 붙여넣고 '정밀 분석' 버튼을 누르세요."></textarea>
+                        <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="✨ 초간편 사용 가이드:&#10;1. 검색 & 클릭 → 왼쪽에서 상품을 클릭하여 새 탭으로 여세요.&#10;2. F12 & 복사 → 새 탭에서 F12를 누르고, HTML 전체를 복사하세요.&#10;3. 붙여넣기 & 분석 → 여기에 붙여넣고 '정밀 분석' 버튼을 누르세요."></textarea>
                     </div>
                     <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
                         정밀 분석 시작!
                     </button>
                     <div id="status-message" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
                 </div>
-            </div>
-            
-            <div class="md:grid md:grid-cols-12 md:gap-8 flex-grow min-h-0">
-                 <!-- Left Scrollable Content -->
-                <div class="md:col-span-4 bg-white rounded-b-2xl shadow-lg p-6 pt-0 flex flex-col min-h-0">
-                    <h3 class="text-xl font-semibold border-b border-gray-200 pb-2 mb-3 flex-shrink-0">분석 결과 (1페이지):</h3>
-                    <div id="search-results" class="scroll-area flex-grow overflow-y-auto p-1 space-y-2">
-                        <p class="text-gray-500 text-center mt-4">조사 대기 중...</p>
-                    </div>
-                </div>
-
                 <!-- Right Scrollable Content -->
-                <div class="md:col-span-8 bg-white rounded-b-2xl shadow-lg p-6 pt-0 flex flex-col min-h-0 mt-8 md:mt-0">
+                <div class="flex-grow min-h-0 bg-white rounded-b-2xl shadow-lg p-6 pt-0 flex flex-col">
                     <div id="analyzed-section" class="flex flex-col min-h-0 h-full">
                          <div class="flex justify-between items-center border-b border-gray-200 pb-2 mb-3 flex-shrink-0">
                             <h3 class="text-xl font-semibold">📝 분석 완료 목록</h3>
@@ -88,7 +89,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
