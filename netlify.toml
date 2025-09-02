@@ -1,30 +1,27 @@
-# Netlify 빌드 및 함수 설정을 위한 최종 통합 지시서
+# [v1.6 최종] 두 개의 작전 계획서를 통합한 최종 버전!
+# 이 파일 하나면 빌드, 배포, 함수 실행까지 완벽하게 통제할 수 있다.
 
+# [build] 섹션: Netlify가 우리 사이트를 어떻게 만들지 알려주는 부분
+# 친구가 가져온 설정인데, 아주 좋은 습관이야! 그대로 유지하자.
 [build]
-  # 기존에 사용하시던 빌드 명령을 그대로 유지합니다.
+  # Netlify에 배포할 때 자동으로 'npm install'을 실행해서 장비를 설치해달라는 명령
   command = "npm install"
+  # 배포할 파일들이 있는 폴더 ( '.'는 현재 폴더를 의미)
   publish = "."
 
+# [functions] 섹션: 우리 비밀 요원(서버리스 함수)에 대한 설정
 [functions]
-  # ⭐️ 여기가 중요합니다! ⭐️
-  # 기존 함수 폴더 경로를 그대로 사용합니다.
-  # 따라서, 우리가 만든 'get-key.js' 파일도 'netlify/functions/' 폴더 안에 넣어주셔야 합니다.
-  # 모든 팝업 주방(서버리스 함수) 설계도는 이 폴더에 있어야 합니다.
+  # 비밀 요원 파일들이 있는 폴더 위치
   directory = "netlify/functions/"
   
-  # 기존에 사용하시던 고급 설정들을 모두 유지합니다.
-  node_bundler = "esbuild"
-  external_node_modules = ["node-fetch"]
+  # ⭐ 이번 작전의 핵심! 작전 시간 연장! ⭐
+  # 우리 요원이 타임아웃으로 실종되지 않도록 작전 시간을 25초로 넉넉하게 보장!
+  timeout = 25
 
-# '/api/*' 요청을 함수로 전달하는 규칙입니다. (양쪽에 모두 있었으므로 하나만 유지)
-# '/api/*'로 들어오는 모든 주문을 팝업 주방으로 연결하는 핵심 규칙입니다!
+# [[redirects]] 섹션: 특정 주소로 들어온 요청을 다른 곳으로 보내주는 규칙
+# 친구가 쓰던 전문가용 API 경로 단축 규칙! 그대로 사용하자.
+# 이제 '/.netlify/functions/fetch-info' 대신 '/api/fetch-info'로도 호출할 수 있게 돼.
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200
-  
-# 기존에 사용하시던 사이트맵 리디렉션 규칙도 안전하게 유지합니다.
-[[redirects]]
-  from = "/sitemap.xml"
-  to = "/.netlify/functions/sitemap"
   status = 200

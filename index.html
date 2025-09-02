@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트스토어 정보 추출기 v1.5</title>
+    <title>스마트스토어 정보 추출기 v1.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -35,8 +35,8 @@
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-6 md:p-10 space-y-8">
         <!-- 헤더 -->
         <div class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">🚀 스마트스토어 정보 추출기 v1.5</h1>
-            <p class="text-gray-500 mt-2">네이버 스마트스토어 상품 URL을 입력하고, 필요한 정보만 쏙쏙 뽑아보세요!</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">🚀 스마트스토어 정보 추출기 v1.6</h1>
+            <p class="text-gray-500 mt-2">네이버 스마트스토어 또는 쇼핑 카탈로그 URL을 입력하고 정보를 추출하세요!</p>
         </div>
 
         <!-- URL 입력 폼 -->
@@ -84,7 +84,7 @@
         const loader = document.getElementById('loader');
         const messageText = document.getElementById('messageText');
 
-        console.log("✅ 스크립트 로드 완료! (v1.5)");
+        console.log("✅ 스크립트 로드 완료! (v1.6)");
 
         extractBtn.addEventListener('click', async () => {
             const url = productUrlInput.value.trim();
@@ -103,7 +103,7 @@
             resultArea.classList.add('hidden');
             messageArea.classList.remove('hidden');
             loader.style.display = 'block';
-            messageText.textContent = '🕵️‍♂️ 비밀 요원이 정보를 수집하는 중... (v1.5 최종 작전!)';
+            messageText.textContent = '🕵️‍♂️ 비밀 요원이 정보를 수집하는 중... (v1.6 최종 작전!)';
             attributesResult.innerHTML = '';
             tagsResult.innerHTML = '';
 
@@ -113,14 +113,13 @@
                 console.log('[3단계] 비밀 요원으로부터 응답 도착!', response);
 
                 if (!response.ok) {
-                    // [v1.5 개선] 오류 메시지를 더 자세하게 보여주기
-                    let errorMsg = `서버에서 오류가 발생했습니다. (상태 코드: ${response.status})`;
+                    let errorMsg = `서버 오류 (${response.status})`;
                     try {
                         const errorData = await response.json();
                         errorMsg = errorData.error || errorMsg;
                     } catch (e) {
-                        // JSON 파싱 실패 시, 텍스트로 오류 메시지 확인
-                        errorMsg = await response.text();
+                        const textError = await response.text();
+                         errorMsg = textError || errorMsg;
                     }
                     throw new Error(errorMsg);
                 }
