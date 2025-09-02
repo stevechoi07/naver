@@ -1,12 +1,12 @@
 {
-  "name": "naver-rank-analyzer",
-  "version": "1.0.0",
-  "description": "Naver Shopping Rank Analyzer with Netlify Functions",
+  "name": "smartstore-scraper-functions",
+  "version": "1.5.0",
+  "description": "Netlify functions for my scraper",
   "scripts": {
     "start": "netlify dev"
   },
   "dependencies": {
     "axios": "^1.4.0",
-	"cheerio": "^1.0.0-rc.12"
+    "cheerio": "^1.0.0-rc.12"
   }
 }
