@@ -1,4 +1,4 @@
-// script.js
+// script.js (v1.1)
 
 // 1. 필요한 HTML 요소들을 미리 찾아놓습니다.
 const keywordInput = document.getElementById('keyword-input');
@@ -44,6 +44,21 @@ function displayResults(items) {
     items.forEach(item => {
         // HTML에서 <b> 태그 같은 것들을 제거해서 순수 텍스트만 남깁니다.
         const cleanTitle = item.title.replace(/<[^>]*>/g, '');
+        
+        // ✨ ----- 1. 속성(attributes) 정보를 표시할 HTML 만들기 ----- ✨
+        let attributesHTML = '<ul>';
+        for (const key in item.attributes) {
+            attributesHTML += `<li><strong>${key}:</strong> ${item.attributes[key]}</li>`;
+        }
+        attributesHTML += '</ul>';
+
+        // ✨ ----- 2. 태그(tags) 정보를 표시할 HTML 만들기 ----- ✨
+        let tagsHTML = '<div class="tags">';
+        item.tags.forEach(tag => {
+            tagsHTML += `<span class="tag">#${tag}</span>`;
+        });
+        tagsHTML += '</div>';
+
 
         const itemHTML = `
             <div class="result-item">
@@ -54,7 +69,10 @@ function displayResults(items) {
                     <span class="title">${cleanTitle}</span>
                     <span class="mall">${item.mallName}</span>
                     <span class="price">${Number(item.lprice).toLocaleString()}원</span>
-                    </div>
+                    <hr>
+                    <div><strong>속성:</strong> ${attributesHTML}</div>
+                    <div><strong>태그:</strong> ${tagsHTML}</div>
+                </div>
             </div>
         `;
         resultsContainer.innerHTML += itemHTML;
