@@ -9,7 +9,7 @@ const cheerio = require('cheerio');
 
 exports.handler = async (event, context) => {
   // 🔥 디버깅: 함수가 호출되었는지, 어떤 URL을 받았는지 Netlify 로그에서 확인!
-  console.log('[요원] 출동! 임무 접수 완료.');
+  console.log('[요원] 출동! 임무 접수 완료. (v1.1)');
   const targetUrl = event.queryStringParameters.url;
   console.log(`[요원] 타겟 URL: ${targetUrl}`);
 
@@ -26,8 +26,9 @@ exports.handler = async (event, context) => {
     console.log('[요원] 타겟 사이트로 잠입 시도...');
     const response = await axios.get(targetUrl, {
       headers: {
-        // 실제 브라우저인 것처럼 위장! (가끔 이걸로 차단을 피할 수 있거든)
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        // [v1.1 개선] 실제 브라우저인 것처럼 위장! (429 에러 방지)
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/5.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
       }
     });
     const html = response.data;
@@ -45,7 +46,7 @@ exports.handler = async (event, context) => {
     
     // 4. 상품 속성 정보 테이블에서 정보 추출
     const attributes = [];
-    $('div.detail_attributes table tr').each((i, elem) => {
+    $('div.attribute_wrapper table tr').each((i, elem) => { // 더 구체적인 선택자로 변경
       const th = $(elem).find('th');
       const td = $(elem).find('td');
 
@@ -65,6 +66,9 @@ exports.handler = async (event, context) => {
     // 5. 추출한 정보를 JSON 형태로 예쁘게 포장해서 보고
     return {
       statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         attributes,
         tags,
@@ -74,7 +78,7 @@ exports.handler = async (event, context) => {
     // 🔥 디버깅: 에러 발생 시 Netlify 로그에서 확인
     console.error('[요원] 임무 실패! 원인:', error.message);
     return {
-      statusCode: 500,
+      statusCode: error.response ? error.response.status : 500,
       body: JSON.stringify({ error: `정보를 가져오는 데 실패했습니다: ${error.message}` }),
     };
   }

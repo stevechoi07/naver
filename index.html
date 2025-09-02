@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트스토어 정보 추출기 v1.0</title>
+    <title>스마트스토어 정보 추출기 v1.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -35,7 +35,7 @@
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-6 md:p-10 space-y-8">
         <!-- 헤더 -->
         <div class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">🚀 스마트스토어 정보 추출기 v1.0</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">🚀 스마트스토어 정보 추출기 v1.1</h1>
             <p class="text-gray-500 mt-2">네이버 스마트스토어 상품 URL을 입력하고, 필요한 정보만 쏙쏙 뽑아보세요!</p>
         </div>
 
@@ -85,18 +85,24 @@
         const messageText = document.getElementById('messageText');
 
         // 🔥 디버깅: 스크립트가 잘 로드되었는지 확인!
-        console.log("✅ 스크립트 로드 완료! 버튼을 눌러보세요!");
+        console.log("✅ 스크립트 로드 완료! (v1.1)");
 
         extractBtn.addEventListener('click', async () => {
             const url = productUrlInput.value.trim();
-
-            // 🔥 디버깅: 입력된 URL 확인
-            console.log(`[1단계] 추출 시작! 입력된 URL: ${url}`);
-
+            
             if (!url) {
                 alert('상품 URL을 입력해주세요!');
                 return;
             }
+
+            // [v1.1 개선] URL에서 불필요한 파라미터(?NaPm=...) 제거 (URL 다이어트!)
+            const cleanedUrl = url.split('?')[0];
+
+            // 🔥 디버깅: URL 정제 과정 확인
+            console.log(`[1단계] 추출 시작!`);
+            console.log(`- 원본 URL: ${url}`);
+            console.log(`- 정제된 URL: ${cleanedUrl}`);
+
 
             // UI 초기화
             resultArea.classList.add('hidden');
@@ -108,9 +114,9 @@
 
             try {
                 // 🔥 디버깅: 넷리파이 함수 호출 직전
-                console.log(`[2단계] 비밀 요원 호출! -> /.netlify/functions/fetch-info?url=${encodeURIComponent(url)}`);
+                console.log(`[2단계] 비밀 요원 호출! -> /.netlify/functions/fetch-info?url=${encodeURIComponent(cleanedUrl)}`);
 
-                const response = await fetch(`/.netlify/functions/fetch-info?url=${encodeURIComponent(url)}`);
+                const response = await fetch(`/.netlify/functions/fetch-info?url=${encodeURIComponent(cleanedUrl)}`);
 
                 // 🔥 디버깅: 넷리파이 함수로부터 받은 응답 확인
                 console.log('[3단계] 비밀 요원으로부터 응답 도착!', response);
