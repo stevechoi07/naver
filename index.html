@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v5.3 - localStorage 시스템</title>
+    <title>HTML 청진기 v5.4 - 중앙 관제 센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -23,8 +23,8 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v5.3</h1>
-            <p class="text-lg text-gray-600 mt-2">'초고속 개인 금고' 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v5.4</h1>
+            <p class="text-lg text-gray-600 mt-2">'중앙 관제 센터' 에디션</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
@@ -158,7 +158,7 @@
                     addAnalyzedCardToDOM(product);
                 });
             }
-            updateAnalyzedStyles(analyzedProductLinks); 
+            updateAnalyzedStylesInSearchList(analyzedProductLinks); 
         }
         
         // --- UI Logic ---
@@ -344,9 +344,16 @@
                     id: Date.now().toString(), // Use timestamp as a simple unique ID
                     ...data,
                     rank: rank,
-                    link: productDetails ? productDetails.link : 'manual',
+                    link: productDetails ? productDetails.link : 'manual-' + Date.now(), // Make manual links unique
                     timestamp: new Date().toISOString()
                 };
+
+                // 중복 분석 방지
+                if (analyzedProducts.some(p => p.link === newProduct.link && p.link !== 'manual')) {
+                     showAnalyzeMessage('이미 분석된 상품입니다.', 'error');
+                     setLoadingState(false, 'analyze');
+                     return;
+                }
 
                 analyzedProducts.push(newProduct);
                 saveAnalyzedProducts(analyzedProducts);
@@ -390,7 +397,7 @@
             analyzedResultsContainer.prepend(resultCard);
         }
 
-        function updateAnalyzedStyles(analyzedLinksSet) {
+        function updateAnalyzedStylesInSearchList(analyzedLinksSet) {
             const productCards = searchResultsContainer.querySelectorAll('.product-card');
             productCards.forEach(card => {
                 const productId = card.dataset.productId;
