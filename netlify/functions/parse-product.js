@@ -1,72 +1,92 @@
-// [v1.0] '네이버 쇼핑 역학조사관'
-// 키워드를 받아 네이버 쇼핑 1페이지를 스캔하고, 상품 목록을 반환하는 전문 함수!
-// axios와 cheerio를 사용하여 외부 페이지를 가져와 분석합니다.
-const axios = require('axios');
+// [v2.5] '상품 페이지 분석 전문의' (이름 변경)
+// 기존 fetch-info.js의 역할을 명확히 하기 위해 파일 이름 변경.
+// 기능은 v2.4와 동일하며, 단일 상품 페이지만을 정밀 분석합니다.
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: 'Method Not Allowed' };
+  try {
+    if (!event.body) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: '분석할 HTML 코드가 없습니다.' }),
+        };
     }
 
-    try {
-        const { keyword } = JSON.parse(event.body);
-        if (!keyword) {
-            return { statusCode: 400, body: JSON.stringify({ error: '검색할 키워드가 없습니다.' }) };
+    const { html } = JSON.parse(event.body);
+
+    if (!html) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: '전달된 HTML 데이터가 비어있습니다.' }),
+      };
+    }
+
+    const $ = cheerio.load(html);
+    let productName = '';
+    const attributes = [];
+    const tags = [];
+    
+    let debug_attributes_html = 'N/A';
+    let debug_attributes_count = 0;
+    let debug_tags_html = 'N/A';
+    let debug_tags_count = 0;
+
+    productName = $('meta[property="og:title"]').attr('content') || '상품명을 찾을 수 없습니다.';
+    if (productName.includes(':')) {
+        productName = productName.split(':')[0].trim();
+    }
+
+    const attributeTable = $('div.detail_attributes table.RCLS1uAn0a');
+    debug_attributes_html = attributeTable.parent().html() || '속성 테이블 영역을 찾지 못했습니다.';
+
+    attributeTable.find('tbody tr').each((i, tr_elem) => {
+      debug_attributes_count++;
+      const cells = $(tr_elem).children('th, td');
+      for (let i = 0; i < cells.length; i += 2) {
+        const key = $(cells[i]).text().trim();
+        const value = $(cells[i + 1]).text().trim();
+        if (key && value) {
+          attributes.push({ key, value });
         }
+      }
+    });
 
-        const searchUrl = `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(keyword)}`;
+    const keywordsMeta = $('meta[name="keywords"]');
+    const keywordsContent = keywordsMeta.attr('content');
+    
+    debug_tags_html = keywordsMeta.parent().html().match(/<meta name="keywords"[^>]*>/)?.[0] || 'keywords meta 태그를 찾지 못했습니다.';
 
-        // 실제 브라우저처럼 보이게 하기 위한 User-Agent 설정
-        const { data } = await axios.get(searchUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-
-        const $ = cheerio.load(data);
-        const products = [];
-
-        // 네이버 쇼핑의 상품 리스트 아이템 선택자 (클래스 이름은 변경될 수 있으므로, 시작하는 값으로 검색)
-        $('div[class^="product_item_"]').each((i, el) => {
-            const productElement = $(el);
-            
-            // 광고 상품은 제외하는 로직 추가 (ad 클래스를 포함하는 경우가 많음)
-            if (productElement.find('[class*="ad"]').length > 0) {
-                return; // continue
-            }
-
-            const title = productElement.find('a[class*="product_link"]').attr('title');
-            const link = productElement.find('a[class*="product_link"]').attr('href');
-            const imageUrl = productElement.find('img[class*="thumbnail_thumb"]').attr('src');
-            const price = productElement.find('span[class*="price_num"]').text();
-
-            if (title && link && imageUrl && price) {
-                products.push({
-                    title,
-                    link,
-                    imageUrl,
-                    price,
-                });
-            }
-        });
-
-        // 1페이지의 상품만 가져오도록 최대 40개로 제한
-        const results = products.slice(0, 40);
-
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ results }),
-        };
-
-    } catch (error) {
-        console.error('Naver Shopping Search Error:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                error: '네이버 쇼핑 페이지를 분석하는 중에 에러가 발생했습니다.',
-                details: error.message,
-            }),
-        };
+    if (keywordsContent) {
+      const keywordArray = keywordsContent.split(',').map(tag => tag.trim()).filter(tag => tag);
+      tags.push(...keywordArray);
+      debug_tags_count = keywordArray.length;
+    } else {
+      debug_tags_count = 0;
     }
+    
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        productName,
+        attributes,
+        tags,
+        debug: {
+          attributes_html: debug_attributes_html,
+          attributes_count: debug_attributes_count,
+          tags_html: debug_tags_html,
+          tags_count: debug_tags_count,
+        }
+      }),
+    };
+
+  } catch (error) {
+    console.error('HTML Parsing Error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: 'HTML 코드를 분석하는 중에 에러가 발생했습니다.',
+        details: error.message,
+      }),
+    };
+  }
 };

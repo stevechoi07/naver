@@ -1,92 +1,275 @@
-// [v2.5] '상품 페이지 분석 전문의' (이름 변경)
-// 기존 fetch-info.js의 역할을 명확히 하기 위해 파일 이름 변경.
-// 기능은 v2.4와 동일하며, 단일 상품 페이지만을 정밀 분석합니다.
-const cheerio = require('cheerio');
-
-exports.handler = async function (event, context) {
-  try {
-    if (!event.body) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: '분석할 HTML 코드가 없습니다.' }),
-        };
-    }
-
-    const { html } = JSON.parse(event.body);
-
-    if (!html) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: '전달된 HTML 데이터가 비어있습니다.' }),
-      };
-    }
-
-    const $ = cheerio.load(html);
-    let productName = '';
-    const attributes = [];
-    const tags = [];
-    
-    let debug_attributes_html = 'N/A';
-    let debug_attributes_count = 0;
-    let debug_tags_html = 'N/A';
-    let debug_tags_count = 0;
-
-    productName = $('meta[property="og:title"]').attr('content') || '상품명을 찾을 수 없습니다.';
-    if (productName.includes(':')) {
-        productName = productName.split(':')[0].trim();
-    }
-
-    const attributeTable = $('div.detail_attributes table.RCLS1uAn0a');
-    debug_attributes_html = attributeTable.parent().html() || '속성 테이블 영역을 찾지 못했습니다.';
-
-    attributeTable.find('tbody tr').each((i, tr_elem) => {
-      debug_attributes_count++;
-      const cells = $(tr_elem).children('th, td');
-      for (let i = 0; i < cells.length; i += 2) {
-        const key = $(cells[i]).text().trim();
-        const value = $(cells[i + 1]).text().trim();
-        if (key && value) {
-          attributes.push({ key, value });
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 청진기 v3.0 - 시장 분석실 확장!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .result-grid { display: grid; grid-template-columns: 100px 1fr; gap: 8px; }
+        @media (max-width: 768px) {
+            .result-grid { grid-template-columns: 80px 1fr; }
         }
-      }
-    });
+        /* 스크롤바 스타일링 */
+        #search-results::-webkit-scrollbar { width: 8px; }
+        #search-results::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px;}
+        #search-results::-webkit-scrollbar-thumb { background: #888; border-radius: 10px;}
+        #search-results::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
 
-    const keywordsMeta = $('meta[name="keywords"]');
-    const keywordsContent = keywordsMeta.attr('content');
-    
-    debug_tags_html = keywordsMeta.parent().html().match(/<meta name="keywords"[^>]*>/)?.[0] || 'keywords meta 태그를 찾지 못했습니다.';
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v3.0</h1>
+            <p class="text-lg text-gray-600 mt-2">시장 분석실 확장 에디션</p>
+        </header>
 
-    if (keywordsContent) {
-      const keywordArray = keywordsContent.split(',').map(tag => tag.trim()).filter(tag => tag);
-      tags.push(...keywordArray);
-      debug_tags_count = keywordArray.length;
-    } else {
-      debug_tags_count = 0;
-    }
-    
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        productName,
-        attributes,
-        tags,
-        debug: {
-          attributes_html: debug_attributes_html,
-          attributes_count: debug_attributes_count,
-          tags_html: debug_tags_html,
-          tags_count: debug_tags_count,
+        <div class="md:grid md:grid-cols-2 md:gap-8">
+            <!-- Left Column: Keyword Search Tool -->
+            <div class="w-full bg-white rounded-2xl shadow-2xl p-8 space-y-6 mb-8 md:mb-0">
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
+                <div>
+                    <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">1. 네이버 쇼핑 키워드 입력:</label>
+                    <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200" placeholder="예: 스팀다리미">
+                </div>
+                <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200 text-lg">
+                    시장 조사 시작!
+                </button>
+                <div id="search-status" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold border-b border-gray-200 pb-2">네이버 쇼핑 1페이지 분석 결과:</h3>
+                    <div id="search-results" class="h-96 overflow-y-auto p-2 bg-gray-50 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <p class="text-gray-500 col-span-full text-center mt-4">조사 대기 중...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: HTML Stethoscope -->
+            <div class="w-full bg-white rounded-2xl shadow-2xl p-8 space-y-6">
+                 <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
+                <div>
+                    <label for="html-input" class="block text-sm font-medium text-gray-700 mb-2">1. 스마트스토어 HTML 코드 붙여넣기:</label>
+                    <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="HTML 소스 코드를 여기에 붙여넣어 주세요."></textarea>
+                </div>
+                <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
+                    정밀 분석 시작!
+                </button>
+                <div id="status-message" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
+                
+                <!-- Analysis Results -->
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-xl font-semibold">상품명</h3>
+                        <div id="product-name-result" class="p-3 bg-gray-50 rounded-lg min-h-[40px] font-semibold">...</div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold">상품 속성</h3>
+                        <div id="attributes-result" class="p-3 bg-gray-50 rounded-lg min-h-[80px]">...</div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold">관련 태그</h3>
+                        <div id="tags-result" class="p-3 bg-gray-50 rounded-lg min-h-[40px] flex flex-wrap gap-2">...</div>
+                    </div>
+                </div>
+
+                <!-- Debug Info -->
+                <details class="bg-gray-50 rounded-lg transition-all duration-300">
+                    <summary class="text-lg font-semibold p-3 cursor-pointer hover:bg-gray-100">수술 기록 (디버그 정보)</summary>
+                    <div class="p-3 border-t border-gray-200 space-y-2 bg-white">
+                        <div>
+                            <h4 class="font-bold text-sm text-gray-700">상품 속성 분석:</h4>
+                            <p id="debug-attributes-count" class="text-xs text-gray-600 mb-1">...</p>
+                            <pre class="bg-gray-800 text-white p-2 rounded-md max-h-32 overflow-auto text-xs font-mono"><code id="debug-attributes-html"></code></pre>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-gray-700">관련 태그 분석:</h4>
+                            <p id="debug-tags-count" class="text-xs text-gray-600 mb-1">...</p>
+                            <pre class="bg-gray-800 text-white p-2 rounded-md max-h-32 overflow-auto text-xs font-mono"><code id="debug-tags-html"></code></pre>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- NEW: Keyword Search Tool Logic ---
+        const searchButton = document.getElementById('search-button');
+        const keywordInput = document.getElementById('keyword-input');
+        const searchResultsContainer = document.getElementById('search-results');
+        const searchStatus = document.getElementById('search-status');
+
+        searchButton.addEventListener('click', async () => {
+            const keyword = keywordInput.value.trim();
+            if (!keyword) {
+                showSearchMessage('키워드를 입력해주세요.', 'error');
+                return;
+            }
+            showSearchMessage(`'${keyword}' 키워드로 시장 조사 중... 🕵️‍♂️`, 'loading');
+            searchResultsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/.netlify/functions/search-naver', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword })
+                });
+                
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                     throw new Error(data.error || '검색 결과를 가져오지 못했습니다.');
+                }
+
+                showSearchMessage(`"${keyword}" 검색 결과 ${data.results.length}건 분석 완료!`, 'success');
+                displaySearchResults(data.results);
+
+            } catch (error) {
+                showSearchMessage(`조사 실패: ${error.message}`, 'error');
+            }
+        });
+
+        function showSearchMessage(message, type) {
+            searchStatus.textContent = message;
+            searchStatus.className = 'text-center p-3 rounded-lg text-sm';
+            searchStatus.classList.remove('hidden');
+            const typeClasses = {
+                loading: ['bg-yellow-100', 'text-yellow-800'],
+                success: ['bg-green-100', 'text-green-800'],
+                error: ['bg-red-100', 'text-red-800']
+            };
+            if(typeClasses[type]) searchStatus.classList.add(...typeClasses[type]);
         }
-      }),
-    };
 
-  } catch (error) {
-    console.error('HTML Parsing Error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'HTML 코드를 분석하는 중에 에러가 발생했습니다.',
-        details: error.message,
-      }),
-    };
-  }
-};
+        function displaySearchResults(results) {
+            searchResultsContainer.innerHTML = '';
+            if (results.length === 0) {
+                searchResultsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center mt-4">검색 결과가 없습니다.</p>';
+                return;
+            }
+
+            results.forEach(product => {
+                const productCard = document.createElement('a');
+                productCard.href = product.link;
+                productCard.target = '_blank';
+                productCard.className = 'block p-3 border border-gray-200 rounded-lg hover:shadow-md hover:border-green-400 transition-all duration-200';
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.title}" class="w-full h-32 object-cover rounded-md mb-3" onerror="this.onerror=null;this.src='https://placehold.co/200x150/e2e8f0/adb5bd?text=Image+Error';">
+                    <h3 class="font-semibold text-sm text-gray-800 truncate" title="${product.title}">${product.title}</h3>
+                    <p class="text-green-700 font-bold mt-1">${product.price}원</p>
+                `;
+                searchResultsContainer.appendChild(productCard);
+            });
+        }
+
+        // --- OLD: HTML Stethoscope Logic ---
+        const analyzeButton = document.getElementById('analyze-button');
+        const htmlInput = document.getElementById('html-input');
+        const statusMessage = document.getElementById('status-message');
+        const productNameResult = document.getElementById('product-name-result');
+        const attributesResult = document.getElementById('attributes-result');
+        const tagsResult = document.getElementById('tags-result');
+        const debugContainer = document.querySelector('details');
+        const debugAttributesCount = document.getElementById('debug-attributes-count');
+        const debugAttributesHtml = document.getElementById('debug-attributes-html');
+        const debugTagsCount = document.getElementById('debug-tags-count');
+        const debugTagsHtml = document.getElementById('debug-tags-html');
+
+        analyzeButton.addEventListener('click', async () => {
+            const htmlContent = htmlInput.value;
+            if (!htmlContent.trim()) {
+                showAnalyzeMessage('HTML 코드를 붙여넣어 주세요.', 'error');
+                return;
+            }
+
+            productNameResult.innerHTML = '';
+            attributesResult.innerHTML = '';
+            tagsResult.innerHTML = '';
+            showAnalyzeMessage('천재 외과의가 정밀 분석 중입니다... 🩺', 'loading');
+            displayDebugInfo(null);
+
+            try {
+                // The endpoint is now parse-product
+                const response = await fetch('/.netlify/functions/parse-product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ html: htmlContent })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `서버 에러: ${response.status}`);
+                }
+
+                const data = await response.json();
+                showAnalyzeMessage('분석 완료! 결과를 확인하세요.', 'success');
+                displayAnalysisResults(data);
+                displayDebugInfo(data.debug);
+
+            } catch (error) {
+                showAnalyzeMessage(`분석 실패: ${error.message}`, 'error');
+            }
+        });
+
+        function showAnalyzeMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'text-center p-3 rounded-lg text-sm';
+            statusMessage.classList.remove('hidden');
+            const typeClasses = {
+                loading: ['bg-blue-100', 'text-blue-800'],
+                success: ['bg-green-100', 'text-green-800'],
+                error: ['bg-red-100', 'text-red-800']
+            };
+            if(typeClasses[type]) statusMessage.classList.add(...typeClasses[type]);
+        }
+        
+        function displayAnalysisResults({ productName, attributes, tags }) {
+            productNameResult.textContent = productName || '추출된 상품명이 없습니다.';
+
+            attributesResult.innerHTML = '';
+            if (attributes && attributes.length > 0) {
+                const grid = document.createElement('div');
+                grid.className = 'result-grid';
+                attributes.forEach(({ key, value }) => {
+                    grid.innerHTML += `
+                        <div class="font-semibold bg-gray-100 p-2 rounded text-right text-sm">${key}</div>
+                        <div class="bg-white p-2 rounded border text-sm">${value}</div>
+                    `;
+                });
+                attributesResult.appendChild(grid);
+            } else {
+                attributesResult.textContent = '추출된 상품 속성이 없습니다.';
+            }
+
+            tagsResult.innerHTML = '';
+            if (tags && tags.length > 0) {
+                tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'bg-blue-200 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full';
+                    tagEl.textContent = tag;
+                    tagsResult.appendChild(tagEl);
+                });
+            } else {
+                tagsResult.textContent = '추출된 관련 태그가 없습니다.';
+            }
+        }
+        
+        function displayDebugInfo(debugData) {
+            if (!debugData) {
+                debugContainer.style.display = 'none';
+                return;
+            }
+            debugContainer.style.display = 'block';
+
+            debugAttributesCount.textContent = `상품 속성 테이블에서 ${debugData.attributes_count}개의 줄(tr)을 찾았습니다.`;
+            debugAttributesHtml.textContent = debugData.attributes_html;
+            
+            debugTagsCount.textContent = `관련 태그 영역에서 ${debugData.tags_count}개의 태그를 찾았습니다.`;
+            debugTagsHtml.textContent = debugData.tags_html;
+        }
+    </script>
+
+</body>
+</html>
