@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v5.5 - 중앙 관제 센터</title>
+    <title>HTML 청진기 v6.0 - AI 유전자 분석 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -23,8 +23,8 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v5.5</h1>
-            <p class="text-lg text-gray-600 mt-2">'중앙 관제 센터' 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.0</h1>
+            <p class="text-lg text-gray-600 mt-2">'AI 유전자 분석 시스템' 에디션</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
@@ -33,12 +33,13 @@
                 <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
                 <div>
                     <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">1. 네이버 쇼핑 키워드:</label>
-                    <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200" placeholder="예: 스팀다리미">
+                    <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200" placeholder="예: 고용량 멀티탭">
                 </div>
                 <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200 text-lg">
                     시장 조사 시작!
                 </button>
                 <div id="search-status" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
+                <div id="analysis-keywords-display" class="hidden text-sm text-gray-600 p-2 bg-gray-100 rounded-md"></div>
                 <div class="space-y-3">
                     <h3 class="text-xl font-semibold border-b border-gray-200 pb-2">분석 결과 (1페이지):</h3>
                     <div id="search-results" class="h-96 overflow-y-auto p-1 space-y-2">
@@ -114,6 +115,7 @@
         const keywordInput = document.getElementById('keyword-input');
         const searchResultsContainer = document.getElementById('search-results');
         const searchStatus = document.getElementById('search-status');
+        const analysisKeywordsDisplay = document.getElementById('analysis-keywords-display');
         const analyzeButton = document.getElementById('analyze-button');
         const htmlInput = document.getElementById('html-input');
         const statusMessage = document.getElementById('status-message');
@@ -132,9 +134,10 @@
         // --- Global State ---
         let currentSearchResults = [];
         let analyzedProducts = [];
+        let currentAnalysisKeywords = [];
 
         // --- localStorage Logic ---
-        const STORAGE_KEY = 'analyzedProducts';
+        const STORAGE_KEY = 'analyzedProducts_v6';
 
         function getAnalyzedProducts() {
             const data = localStorage.getItem(STORAGE_KEY);
@@ -152,11 +155,8 @@
             if (analyzedProducts.length === 0) {
                 analyzedResultsContainer.innerHTML = '<p class="text-gray-500 text-center mt-4">분석된 상품이 여기에 표시됩니다.</p>';
             } else {
-                // Sort by timestamp descending before rendering
                 const sortedProducts = [...analyzedProducts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                sortedProducts.forEach(product => {
-                    addAnalyzedCardToDOM(product);
-                });
+                sortedProducts.forEach(product => addAnalyzedCardToDOM(product));
             }
             updateAnalyzedStylesInSearchList(analyzedProductLinks); 
         }
@@ -197,15 +197,8 @@
                 confirmModal.classList.remove('hidden');
                 setTimeout(() => confirmModal.classList.remove('opacity-0'), 10);
 
-                const handleOk = () => {
-                    closeModal();
-                    resolve(true);
-                };
-
-                const handleCancel = () => {
-                    closeModal();
-                    resolve(false);
-                };
+                const handleOk = () => { closeModal(); resolve(true); };
+                const handleCancel = () => { closeModal(); resolve(false); };
                 
                 const closeModal = () => {
                     confirmModal.classList.add('opacity-0');
@@ -260,6 +253,11 @@
                 showSearchMessage('키워드를 입력해주세요.', 'error');
                 return;
             }
+            
+            currentAnalysisKeywords = keyword.split(' ').filter(k => k);
+            analysisKeywordsDisplay.innerHTML = `<strong>분석 키워드:</strong> ${currentAnalysisKeywords.map(k => `<span class="font-semibold text-indigo-600">${k}</span>`).join(', ')}`;
+            analysisKeywordsDisplay.classList.remove('hidden');
+
             showSearchMessage(`'${keyword}' 키워드로 시장 조사 중... 🕵️‍♂️`, 'loading');
             searchResultsContainer.innerHTML = '';
             setLoadingState(true, 'search');
@@ -328,7 +326,7 @@
                 const response = await fetch('/.netlify/functions/parse-product', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html: htmlContent })
+                    body: JSON.stringify({ html: htmlContent, keywordsToAnalyze: currentAnalysisKeywords })
                 });
 
                 if (!response.ok) {
@@ -369,12 +367,34 @@
         }
 
         function addAnalyzedCardToDOM(productData) {
-            const { id, productName, attributes, tags, rank } = productData;
+            const { id, productName, attributes, tags, rank, keywordAnalysis } = productData;
             const resultCard = document.createElement('div');
             resultCard.className = 'bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative';
             
             const attributeValues = attributes.map(attr => attr.value).join(', ');
             const tagSpans = tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">${tag}</span>`).join(' ');
+
+            let keywordAnalysisHtml = '';
+            if (keywordAnalysis && Object.keys(keywordAnalysis).length > 0) {
+                 keywordAnalysisHtml = `
+                    <div class="mt-3 pt-3 border-t border-dashed">
+                        <h5 class="font-bold text-xs text-gray-700 mb-2">🧬 키워드 DNA 분석</h5>
+                        <div class="space-y-1 text-xs">
+                `;
+                for (const keyword in keywordAnalysis) {
+                    const counts = keywordAnalysis[keyword];
+                    keywordAnalysisHtml += `
+                        <p>
+                            <strong class="font-semibold text-indigo-600">${keyword}:</strong>
+                            <span class="ml-2">제목: ${counts.title}</span> |
+                            <span class="ml-1">속성: ${counts.attributes}</span> |
+                            <span class="ml-1">태그: ${counts.tags}</span>
+                        </p>
+                    `;
+                }
+                keywordAnalysisHtml += `</div></div>`;
+            }
+
 
             resultCard.innerHTML = `
                 <button data-doc-id="${id}" data-product-name="${productName}" class="delete-btn absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors" title="이 분석 기록 삭제">
@@ -390,6 +410,7 @@
                             <p><strong class="font-semibold text-gray-600">속성:</strong> <span class="text-gray-800">${attributeValues || 'N/A'}</span></p>
                             <p class="flex items-start"><strong class="font-semibold text-gray-600 mr-2 flex-shrink-0">태그:</strong> <span class="flex flex-wrap gap-1">${tagSpans || 'N/A'}</span></p>
                         </div>
+                        ${keywordAnalysisHtml}
                     </div>
                 </div>
             `;
