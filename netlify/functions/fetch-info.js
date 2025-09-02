@@ -1,10 +1,9 @@
-// [v1.8] '새로운 비밀 통로' 개척 버전!
-// 배신한 cors.sh를 버리고, 새로운 프록시 allorigins.win을 긴급 투입한다.
+// [v1.9] 'CSI 과학수사 블랙박스' 탑재 버전!
+// 요원이 기절하더라도, 마지막 순간까지 모든 것을 기록하여 보고한다.
 const axios = require('axios');
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
-  // 1. URL과 디버그 모드 쿼리 파라미터 가져오기
   const targetUrl = event.queryStringParameters.url;
   const isDebugMode = event.queryStringParameters.debug === 'true';
 
@@ -15,16 +14,12 @@ exports.handler = async function (event, context) {
     };
   }
 
-  // ⭐ 작전명: 새로운 비밀 통로를 개척하라! ⭐
-  // 기존 cors.sh 서버가 404 에러를 반환하여, 더 안정적인 allorigins.win으로 교체!
-  // URL 구조가 다르므로, targetUrl을 인코딩하여 쿼리 파라미터로 넘겨준다.
   const proxyUrl = 'https://api.allorigins.win/raw?url=';
   const fullUrl = `${proxyUrl}${encodeURIComponent(targetUrl)}`;
 
-
   try {
     const response = await axios.get(fullUrl, {
-      timeout: 20000, // 20초 안에 응답이 없으면 작전 실패로 간주!
+      timeout: 20000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
         'Referer': 'https://www.naver.com/',
@@ -34,7 +29,6 @@ exports.handler = async function (event, context) {
 
     const html = response.data;
 
-    // 2. 디버깅 모드가 활성화된 경우, 원본 HTML을 바로 반환
     if (isDebugMode) {
       return {
         statusCode: 200,
@@ -43,12 +37,10 @@ exports.handler = async function (event, context) {
       };
     }
 
-    // 3. 디버깅 모드가 아닐 때만 파싱 수행
     const $ = cheerio.load(html);
     let attributes = [];
     let tags = [];
 
-    // '만능 스캐너' 로직: URL에 따라 분기 처리
     if (targetUrl.includes('smartstore.naver.com')) {
       $('div[class^="_2_Ac3_-pd-"] table tbody tr').each((i, elem) => {
         const th = $(elem).find('th').text().trim();
@@ -78,10 +70,30 @@ exports.handler = async function (event, context) {
       body: JSON.stringify({ attributes, tags }),
     };
   } catch (error) {
+    // ⭐ 작전명: 기절한 요원에게 '블랙박스'를 달아주자! ⭐
+    // axios 에러의 상세 정보를 모두 추출하여, 기절 원인을 낱낱이 밝힌다!
+    const blackbox = {};
+    if (error.response) {
+      // 서버가 응답했지만, 상태 코드가 2xx 범위를 벗어남 (예: 403, 404, 500)
+      blackbox.reason = 'Server responded with an error';
+      blackbox.status = error.response.status;
+      blackbox.statusText = error.response.statusText;
+      // blackbox.headers = error.response.headers; // 너무 길어서 일단 주석처리
+      blackbox.data = error.response.data; // 서버가 보낸 에러 메시지 (결정적 단서!)
+    } else if (error.request) {
+      // 요청은 보냈지만, 응답을 받지 못함 (예: 네트워크 문제, 프록시 서버 다운)
+      blackbox.reason = 'No response received from server';
+    } else {
+      // 요청을 설정하는 중에 오류 발생
+      blackbox.reason = 'Error setting up the request';
+      blackbox.message = error.message;
+    }
+
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: `정보를 가져오는 데 실패했습니다: ${error.message}`,
+        error: "요원이 작전 중 기절했습니다! (아래 블랙박스 기록 확인)",
+        blackbox: blackbox,
       }),
     };
   }
