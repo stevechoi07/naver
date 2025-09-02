@@ -1,17 +1,11 @@
 {
-  "name": "gov-support-app",
+  "name": "naver-rank-analyzer",
   "version": "1.0.0",
-  "description": "GD Shop Backend Server",
-  "main": "netlify/functions/shops.js",
+  "description": "Naver Shopping Rank Analyzer with Netlify Functions",
   "scripts": {
-    "start": "node server_gd.js"
+    "start": "netlify dev"
   },
   "dependencies": {
-    "axios": "^0.21.4",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "firebase-admin": "^11.11.1",
-    "node-fetch": "^2.6.7"
+    "axios": "^1.7.2"
   }
 }
-
