@@ -1,0 +1,6 @@
+# netlify.toml
+
+[build]
+  # Netlify에게 함수 폴더 위치를 UI 설정보다 더 강력하게,
+  # 코드로 직접 명령합니다.
+  functions = "netlify/functions"
