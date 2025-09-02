@@ -1,11 +1,12 @@
-# 우리 '파이썬' 프로젝트를 위한 최종 netlify.toml (v2.0)
+# 모든 혼란을 끝낼 최종 netlify.toml (v3.0)
 
 [build]
-  # Netlify에게 함수 폴더 위치를 명확하게 알려줍니다.
-  # 이 설정은 웹사이트 UI 설정보다 우선됩니다.
+  # 웹사이트의 기본 파일들이 있는 곳 (index.html 등)
+  publish = "."
+  # 서버리스 함수들이 있는 곳
   functions = "netlify/functions"
 
-# '/api/analyze' 같은 짧은 주소로 우리 함수를 실행할 수 있게 해주는 마법 규칙!
+# '/api/*' 주소를 실제 함수 주소로 연결하는 리디렉션 규칙
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
