@@ -1,25 +1,30 @@
-// [v2.5] '상품 페이지 분석 전문의' (이름 변경)
-// 기존 fetch-info.js의 역할을 명확히 하기 위해 파일 이름 변경.
-// 기능은 v2.4와 동일하며, 단일 상품 페이지만을 정밀 분석합니다.
+// [v3.0] '상품 페이지 분석 전문의' (원격 진료 기능 추가!)
+// 이제 HTML을 직접 받지 않고, 상품 URL만 받아서 직접 왕진(axios.get)을 간다!
+// 네이버 경비팀을 통과하기 위해 '정식 방문증'(User-Agent)을 발급받아 요청!
+const axios = require('axios');
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
   try {
     if (!event.body) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: '분석할 HTML 코드가 없습니다.' }),
-        };
+        return { statusCode: 400, body: JSON.stringify({ error: '분석할 URL이 없습니다.' }) };
     }
 
-    const { html } = JSON.parse(event.body);
+    // 이제 html 대신 url을 받습니다.
+    const { url } = JSON.parse(event.body);
 
-    if (!html) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: '전달된 HTML 데이터가 비어있습니다.' }),
-      };
+    if (!url) {
+      return { statusCode: 400, body: JSON.stringify({ error: '전달된 URL 데이터가 비어있습니다.' }) };
     }
+
+    // --- 핵심 업그레이드: 직접 URL을 fetch 합니다! ---
+    // '방문객 신분증' (User-Agent)을 장착해서, 봇으로 인식되지 않도록 위장합니다.
+    const { data: html } = await axios.get(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+    });
+    // ---------------------------------------------
 
     const $ = cheerio.load(html);
     let productName = '';
@@ -80,11 +85,11 @@ exports.handler = async function (event, context) {
     };
 
   } catch (error) {
-    console.error('HTML Parsing Error:', error);
+    console.error('URL Fetch/Parsing Error:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: 'HTML 코드를 분석하는 중에 에러가 발생했습니다.',
+        error: '상품 페이지를 가져와 분석하는 중에 에러가 발생했습니다.',
         details: error.message,
       }),
     };
