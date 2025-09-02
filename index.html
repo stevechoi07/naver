@@ -3,22 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v6.5 - 글래스모피즘 대시보드</title>
+    <title>HTML 청진기 v6.6 - Zen Focus 모드</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5; /* Light grey background */
+            background-color: #f0f2f5; /* Light grey background for better contrast */
         }
-        .scroll-area::-webkit-scrollbar { width: 8px; }
-        .scroll-area::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px;}
-        .scroll-area::-webkit-scrollbar-thumb { background: #888; border-radius: 10px;}
-        .scroll-area::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        /* Glassmorphism Header */
+        .sticky-header {
+            position: sticky;
+            top: 1rem; /* Adjust spacing from top */
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.75); /* Increased opacity for readability */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
         
         .product-card { transition: all 0.2s ease-in-out; }
         .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .analyzed { background-color: #e6fffa; opacity: 0.7; border-left: 4px solid #38a169; }
         
+        /* v6.6 Zen Focus Mode Style */
+        .analyzed { 
+            background-color: #f8f8f8; /* Very light grey, almost white */
+            opacity: 0.5; /* More aggressive opacity */
+            border-left: 4px solid #d1d5db; /* A calmer grey indicator */
+        }
+        .analyzed .font-semibold, .analyzed .font-bold {
+            color: #6b7280; /* Grey out text */
+        }
+        .analyzed:hover {
+             opacity: 0.7; /* Don't become fully opaque on hover */
+             transform: none; /* Disable hover animation */
+             box-shadow: none;
+        }
+
         .modal-overlay {
             transition: opacity 0.3s ease;
         }
@@ -27,32 +48,21 @@
             height: 1.75rem;
             border-radius: 4px;
         }
-        
-        /* Glassmorphism Header */
-        .sticky-header {
-            position: sticky;
-            top: 1rem; /* Adjust spacing from top */
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.5</h1>
-            <p class="text-lg text-gray-600 mt-2">'글래스모피즘 대시보드' 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v6.6</h1>
+            <p class="text-lg text-gray-600 mt-2">'Zen Focus 모드' 에디션</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
             <!-- Left Column -->
             <div class="md:col-span-4 space-y-8">
                 <!-- Left Header (Sticky) -->
-                <div class="sticky-header rounded-2xl shadow-lg p-6 space-y-4">
+                <div class="sticky-header rounded-2xl shadow-xl p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
                     <div>
                         <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">1. 네이버 쇼핑 키워드:</label>
@@ -61,12 +71,12 @@
                     <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200 text-lg">
                         시장 조사 시작!
                     </button>
-                    <div id="search-status" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
+                    <div id="search-status" class="text-center p-3 rounded-lg bg-white bg-opacity-50 hidden"></div>
                     <div id="analysis-keywords-display" class="hidden text-sm text-gray-600 p-2 bg-gray-100 rounded-md"></div>
                 </div>
                 <!-- Left Scrollable Content -->
-                <div class="bg-white rounded-2xl shadow-lg p-6 pt-0">
-                    <h3 class="text-xl font-semibold border-b border-gray-200 pb-2 mb-3 sticky top-0 bg-white pt-6">분석 결과 (1페이지):</h3>
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold border-b border-gray-200 pb-2 mb-3">분석 결과 (1페이지):</h3>
                     <div id="search-results" class="space-y-2">
                         <p class="text-gray-500 text-center mt-4">조사 대기 중...</p>
                     </div>
@@ -84,11 +94,11 @@
                     <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
                         정밀 분석 시작!
                     </button>
-                    <div id="status-message" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
+                    <div id="status-message" class="text-center p-3 rounded-lg bg-white bg-opacity-50 hidden"></div>
                 </div>
                 <!-- Right Scrollable Content -->
-                <div class="bg-white rounded-2xl shadow-lg p-6 pt-0">
-                     <div class="flex justify-between items-center border-b border-gray-200 pb-2 mb-3 sticky top-0 bg-white pt-6">
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                     <div class="flex justify-between items-center border-b border-gray-200 pb-2 mb-3">
                         <h3 class="text-xl font-semibold">📝 분석 완료 목록</h3>
                         <button id="clear-analyzed-button" class="bg-red-500 text-white text-xs font-bold py-1 px-3 rounded-lg hover:bg-red-600 transition duration-200">
                             전체 삭제
@@ -176,7 +186,7 @@
 
         function showSearchMessage(message, type) {
             searchStatus.textContent = message;
-            searchStatus.className = 'text-center p-3 rounded-lg text-sm';
+            searchStatus.className = 'text-center p-3 rounded-lg text-sm bg-white bg-opacity-50';
             searchStatus.classList.remove('hidden');
             const typeClasses = { loading: 'bg-yellow-100 text-yellow-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
             if(typeClasses[type]) searchStatus.classList.add(...typeClasses[type].split(' '));
@@ -184,7 +194,7 @@
         
         function showAnalyzeMessage(message, type) {
             statusMessage.textContent = message;
-            statusMessage.className = 'text-center p-3 rounded-lg text-sm';
+            statusMessage.className = 'text-center p-3 rounded-lg text-sm bg-white bg-opacity-50';
             statusMessage.classList.remove('hidden');
             const typeClasses = { loading: 'bg-blue-100 text-blue-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
             if(typeClasses[type]) statusMessage.classList.add(...typeClasses[type].split(' '));
