@@ -1,29 +1,36 @@
-// [v3.0] '상품 페이지 분석 전문의' (원격 진료 기능 추가!)
-// 이제 HTML을 직접 받지 않고, 상품 URL만 받아서 직접 왕진(axios.get)을 간다!
-// 네이버 경비팀을 통과하기 위해 '정식 방문증'(User-Agent)을 발급받아 요청!
+// [v3.1] '상품 페이지 분석 전문의' (멀티태스킹 업그레이드)
+// 이제 URL과 HTML을 모두 이해하는 천재 의사로 재탄생!
+// URL이 오면 직접 왕진을 가고, HTML이 오면 바로 차트를 분석한다!
 const axios = require('axios');
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
   try {
     if (!event.body) {
-        return { statusCode: 400, body: JSON.stringify({ error: '분석할 URL이 없습니다.' }) };
+        return { statusCode: 400, body: JSON.stringify({ error: '분석할 데이터가 없습니다.' }) };
     }
 
-    // 이제 html 대신 url을 받습니다.
-    const { url } = JSON.parse(event.body);
+    const body = JSON.parse(event.body);
+    const { url, html: directHtml } = body;
 
-    if (!url) {
-      return { statusCode: 400, body: JSON.stringify({ error: '전달된 URL 데이터가 비어있습니다.' }) };
+    let html;
+
+    // --- 핵심 업그레이드: URL 또는 HTML을 모두 처리! ---
+    if (url) {
+      // URL이 있으면, '방문객 신분증'을 들고 직접 가져옵니다.
+      const response = await axios.get(url, {
+          headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+      });
+      html = response.data;
+    } else if (directHtml) {
+      // URL이 없고 HTML이 있으면, 그걸 그대로 사용합니다.
+      html = directHtml;
+    } else {
+      // 둘 다 없으면 에러를 반환합니다.
+      return { statusCode: 400, body: JSON.stringify({ error: '분석할 URL 또는 HTML 데이터가 비어있습니다.' }) };
     }
-
-    // --- 핵심 업그레이드: 직접 URL을 fetch 합니다! ---
-    // '방문객 신분증' (User-Agent)을 장착해서, 봇으로 인식되지 않도록 위장합니다.
-    const { data: html } = await axios.get(url, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-    });
     // ---------------------------------------------
 
     const $ = cheerio.load(html);
@@ -89,7 +96,7 @@ exports.handler = async function (event, context) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: '상품 페이지를 가져와 분석하는 중에 에러가 발생했습니다.',
+        error: '상품 페이지를 가져오거나 분석하는 중에 에러가 발생했습니다.',
         details: error.message,
       }),
     };
