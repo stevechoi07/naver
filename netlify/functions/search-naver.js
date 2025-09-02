@@ -1,8 +1,8 @@
-// [v1.0] '네이버 쇼핑 역학조사관'
-// 키워드를 받아 네이버 쇼핑 1페이지를 스캔하고, 상품 목록을 반환하는 전문 함수!
-// axios와 cheerio를 사용하여 외부 페이지를 가져와 분석합니다.
+// [v1.1] '네이버 쇼핑 역학조사관' (API 업그레이드)
+// 기존의 불안정한 HTML 스크래핑 방식에서, Netlify 환경변수에 저장된
+// NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 사용하는 공식 API 방식으로 변경!
+// 이제 더 이상 쫓겨날 일 없다!
 const axios = require('axios');
-const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
     if (event.httpMethod !== 'POST') {
@@ -15,44 +15,38 @@ exports.handler = async function (event, context) {
             return { statusCode: 400, body: JSON.stringify({ error: '검색할 키워드가 없습니다.' }) };
         }
 
-        const searchUrl = `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(keyword)}`;
+        // Netlify에 저장된 환경 변수(API 키)를 가져옵니다.
+        const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
+        const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 
-        // 실제 브라우저처럼 보이게 하기 위한 User-Agent 설정
-        const { data } = await axios.get(searchUrl, {
+        if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ error: '네이버 API 인증 정보가 서버에 설정되지 않았습니다. Netlify 환경변수를 확인해주세요.' })
+            };
+        }
+
+        const apiUrl = 'https://openapi.naver.com/v1/search/shop.json';
+
+        const { data } = await axios.get(apiUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'X-Naver-Client-Id': NAVER_CLIENT_ID,
+                'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+            },
+            params: {
+                query: keyword,
+                display: 40, // 1페이지에 해당하는 최대 40개의 결과를 가져옵니다.
+                sort: 'sim' // 관련도 순으로 정렬
             }
         });
 
-        const $ = cheerio.load(data);
-        const products = [];
-
-        // 네이버 쇼핑의 상품 리스트 아이템 선택자 (클래스 이름은 변경될 수 있으므로, 시작하는 값으로 검색)
-        $('div[class^="product_item_"]').each((i, el) => {
-            const productElement = $(el);
-            
-            // 광고 상품은 제외하는 로직 추가 (ad 클래스를 포함하는 경우가 많음)
-            if (productElement.find('[class*="ad"]').length > 0) {
-                return; // continue
-            }
-
-            const title = productElement.find('a[class*="product_link"]').attr('title');
-            const link = productElement.find('a[class*="product_link"]').attr('href');
-            const imageUrl = productElement.find('img[class*="thumbnail_thumb"]').attr('src');
-            const price = productElement.find('span[class*="price_num"]').text();
-
-            if (title && link && imageUrl && price) {
-                products.push({
-                    title,
-                    link,
-                    imageUrl,
-                    price,
-                });
-            }
-        });
-
-        // 1페이지의 상품만 가져오도록 최대 40개로 제한
-        const results = products.slice(0, 40);
+        // API 응답(data.items)을 프론트엔드가 사용하는 형식으로 변환합니다.
+        const results = data.items.map(item => ({
+            title: item.title.replace(/<[^>]*>?/gm, ''), // 제목에서 HTML 태그 제거
+            link: item.link,
+            imageUrl: item.image,
+            price: parseInt(item.lprice).toLocaleString('ko-KR') // 가격에 콤마 추가
+        }));
 
         return {
             statusCode: 200,
@@ -60,12 +54,12 @@ exports.handler = async function (event, context) {
         };
 
     } catch (error) {
-        console.error('Naver Shopping Search Error:', error);
+        console.error('Naver API Error:', error.response ? error.response.data : error.message);
         return {
-            statusCode: 500,
+            statusCode: error.response ? error.response.status : 500,
             body: JSON.stringify({
-                error: '네이버 쇼핑 페이지를 분석하는 중에 에러가 발생했습니다.',
-                details: error.message,
+                error: '네이버 쇼핑 API를 호출하는 중에 에러가 발생했습니다.',
+                details: error.response ? error.response.data : error.message
             }),
         };
     }
