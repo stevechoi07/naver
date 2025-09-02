@@ -3,34 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 랭킹 분석기</title>
+    <title>스마트스토어 정보 추출기 v1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 간단한 스타일링 */
-        body { font-family: sans-serif; background-color: #f4f7f9; color: #333; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input { width: calc(100% - 100px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 90px; padding: 10px; background-color: #00c73c; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        #loading { display: none; margin-top: 15px; }
-        .result-item { border: 1px solid #eee; padding: 15px; margin-top: 15px; border-radius: 4px; display: flex; }
-        .result-item img { width: 100px; height: 100px; margin-right: 15px; }
-        .result-item .info { display: flex; flex-direction: column; }
-        .result-item .info .title { font-weight: bold; margin-bottom: 5px; }
-        .result-item .info .price { color: #d92d2d; font-weight: bold; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .tag {
+            transition: all 0.2s ease-in-out;
+        }
+        .tag:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        #loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body>
-
-    <div class="container">
-        <h1>네이버 랭킹 분석기 🚀</h1>
-        <div>
-            <input type="text" id="keyword-input" placeholder="분석할 키워드를 입력하세요 (예: 멀티탭)">
-            <button id="analyze-btn">분석 시작</button>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-6 md:p-10 space-y-8">
+        <!-- 헤더 -->
+        <div class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">🚀 스마트스토어 정보 추출기 v1.0</h1>
+            <p class="text-gray-500 mt-2">네이버 스마트스토어 상품 URL을 입력하고, 필요한 정보만 쏙쏙 뽑아보세요!</p>
         </div>
 
-        <div id="loading">분석 중... 잠시만 기다려 주세요. 🕵️‍♂️</div>
-        <div id="results-container"></div>
+        <!-- URL 입력 폼 -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <input type="url" id="productUrl" placeholder="https://smartstore.naver.com/..." class="flex-grow p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300" />
+            <button id="extractBtn" class="bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                정보 추출!
+            </button>
+        </div>
+
+        <!-- 결과 표시 영역 -->
+        <div id="resultArea" class="space-y-8 pt-8 border-t-2 border-gray-100 hidden">
+            <!-- 상품 속성 -->
+            <div>
+                <h2 class="text-2xl font-bold text-gray-700 mb-4">📋 상품 속성</h2>
+                <div id="attributesResult" class="overflow-x-auto">
+                    <!-- 속성 정보가 여기에 동적으로 추가됩니다. -->
+                </div>
+            </div>
+
+            <!-- 관련 태그 -->
+            <div>
+                <h2 class="text-2xl font-bold text-gray-700 mb-4">🏷️ 관련 태그</h2>
+                <div id="tagsResult" class="flex flex-wrap gap-3">
+                    <!-- 관련 태그가 여기에 동적으로 추가됩니다. -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 로딩 및 메시지 영역 -->
+        <div id="messageArea" class="text-center py-10 hidden">
+             <div id="loader" class="mx-auto"></div>
+             <p id="messageText" class="text-gray-600 font-semibold mt-4"></p>
+        </div>
+
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        const extractBtn = document.getElementById('extractBtn');
+        const productUrlInput = document.getElementById('productUrl');
+        const resultArea = document.getElementById('resultArea');
+        const attributesResult = document.getElementById('attributesResult');
+        const tagsResult = document.getElementById('tagsResult');
+        const messageArea = document.getElementById('messageArea');
+        const loader = document.getElementById('loader');
+        const messageText = document.getElementById('messageText');
+
+        // 🔥 디버깅: 스크립트가 잘 로드되었는지 확인!
+        console.log("✅ 스크립트 로드 완료! 버튼을 눌러보세요!");
+
+        extractBtn.addEventListener('click', async () => {
+            const url = productUrlInput.value.trim();
+
+            // 🔥 디버깅: 입력된 URL 확인
+            console.log(`[1단계] 추출 시작! 입력된 URL: ${url}`);
+
+            if (!url) {
+                alert('상품 URL을 입력해주세요!');
+                return;
+            }
+
+            // UI 초기화
+            resultArea.classList.add('hidden');
+            messageArea.classList.remove('hidden');
+            loader.style.display = 'block';
+            messageText.textContent = '🕵️‍♂️ 비밀 요원이 정보를 수집하는 중...';
+            attributesResult.innerHTML = '';
+            tagsResult.innerHTML = '';
+
+            try {
+                // 🔥 디버깅: 넷리파이 함수 호출 직전
+                console.log(`[2단계] 비밀 요원 호출! -> /.netlify/functions/fetch-info?url=${encodeURIComponent(url)}`);
+
+                const response = await fetch(`/.netlify/functions/fetch-info?url=${encodeURIComponent(url)}`);
+
+                // 🔥 디버깅: 넷리파이 함수로부터 받은 응답 확인
+                console.log('[3단계] 비밀 요원으로부터 응답 도착!', response);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `서버에서 오류가 발생했습니다. (상태 코드: ${response.status})`);
+                }
+
+                const data = await response.json();
+
+                // 🔥 디버깅: JSON으로 변환된 최종 데이터 확인
+                console.log('[4단계] 데이터 포장 해제 완료!', data);
+
+                loader.style.display = 'none';
+                messageText.textContent = '🎉 정보 추출 성공!';
+                
+                // 1초 후 결과 표시
+                setTimeout(() => {
+                    messageArea.classList.add('hidden');
+                    resultArea.classList.remove('hidden');
+                    
+                    // 상품 속성 표시
+                    if (data.attributes && data.attributes.length > 0) {
+                        const table = document.createElement('table');
+                        table.className = 'w-full text-left border-collapse';
+                        table.innerHTML = `
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="p-3 font-semibold text-gray-600 border-b">속성</th>
+                                    <th class="p-3 font-semibold text-gray-600 border-b">내용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.attributes.map(attr => `
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="p-3 border-b border-gray-200 font-medium">${attr.name}</td>
+                                        <td class="p-3 border-b border-gray-200">${attr.value}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        `;
+                        attributesResult.appendChild(table);
+                    } else {
+                        attributesResult.innerHTML = '<p class="text-gray-500">추출된 상품 속성이 없습니다.</p>';
+                    }
+
+                    // 관련 태그 표시
+                    if (data.tags && data.tags.length > 0) {
+                        data.tags.forEach(tag => {
+                            const tagElement = document.createElement('span');
+                            tagElement.className = 'tag bg-indigo-100 text-indigo-800 text-sm font-medium px-4 py-2 rounded-full cursor-pointer';
+                            tagElement.textContent = `#${tag}`;
+                            tagsResult.appendChild(tagElement);
+                        });
+                    } else {
+                        tagsResult.innerHTML = '<p class="text-gray-500">추출된 관련 태그가 없습니다.</p>';
+                    }
+                     // 🔥 디버깅: 화면에 데이터 표시 완료
+                    console.log("[5단계] 무대 위에 정보 전시 완료!");
+
+                }, 1000);
+
+            } catch (error) {
+                // 🔥 디버깅: 에러 발생 시 내용 확인
+                console.error('[🚨 비상! 비상!] 에러 발생:', error);
+                loader.style.display = 'none';
+                messageText.textContent = `😭 이런! 오류가 발생했어요: ${error.message}`;
+            }
+        });
+    </script>
 </body>
 </html>

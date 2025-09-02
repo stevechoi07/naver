@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네이버 랭킹 분석기</title>
+    <style>
+        /* 간단한 스타일링 */
+        body { font-family: sans-serif; background-color: #f4f7f9; color: #333; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: calc(100% - 100px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 90px; padding: 10px; background-color: #00c73c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #loading { display: none; margin-top: 15px; }
+        .result-item { border: 1px solid #eee; padding: 15px; margin-top: 15px; border-radius: 4px; display: flex; }
+        .result-item img { width: 100px; height: 100px; margin-right: 15px; }
+        .result-item .info { display: flex; flex-direction: column; }
+        .result-item .info .title { font-weight: bold; margin-bottom: 5px; }
+        .result-item .info .price { color: #d92d2d; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>네이버 랭킹 분석기 🚀</h1>
+        <div>
+            <input type="text" id="keyword-input" placeholder="분석할 키워드를 입력하세요 (예: 멀티탭)">
+            <button id="analyze-btn">분석 시작</button>
+        </div>
+
+        <div id="loading">분석 중... 잠시만 기다려 주세요. 🕵️‍♂️</div>
+        <div id="results-container"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
