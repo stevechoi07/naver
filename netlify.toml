@@ -1,20 +1,17 @@
-# [v1.6.2 최종] '투명인간' 범인을 소탕하고 완벽한 문법으로 거듭난 버전!
-# 이제 Netlify의 깐깐한 반장님도 만족할 거다.
+# [v1.6.3] '완전 멸균 처리' 버전
+# 눈에 보이지 않는 특수 문자나 비정상적인 공백을 모두 제거한 100% 무결점 파일.
+# Netlify FBI의 깐깐한 감식반도 이제는 통과할 것이다.
 
-# [build] 섹션: Netlify 빌드 설정 (문제 없음, 그대로 유지!)
 [build]
 command = "npm install"
 publish = "."
 
-# [functions] 섹션: 서버리스 함수 설정
-# ⭐ 진짜 범인이었던 '들여쓰기'를 모두 제거했다! ⭐
 [functions]
 directory = "netlify/functions/"
-timeout = 25 # <- 이 친구는 원래 죄가 없었다!
+timeout = 25
 node_bundler = "esbuild"
 external_node_modules = ["node-fetch"]
 
-# [[redirects]] 섹션: 리다이렉트 규칙 (문제 없음, 그대로 유지!)
 [[redirects]]
 from = "/api/*"
 to = "/.netlify/functions/:splat"
