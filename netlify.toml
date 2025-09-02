@@ -1,6 +1,6 @@
-# [v1.6.3] '완전 멸균 처리' 버전
-# 눈에 보이지 않는 특수 문자나 비정상적인 공백을 모두 제거한 100% 무결점 파일.
-# Netlify FBI의 깐깐한 감식반도 이제는 통과할 것이다.
+# [v1.6.4] '알레르기 테스트' 버전
+# 사용자의 날카로운 직감을 믿고, 의심스러운 'timeout = 25'를 잠시 격리 조치한다.
+# 과연 진짜 범인이 맞을 것인가!
 
 [build]
 command = "npm install"
@@ -8,7 +8,7 @@ publish = "."
 
 [functions]
 directory = "netlify/functions/"
-timeout = 25
+# timeout = 25 # <- 일단 주석 처리해서 기능을 잠시 비활성화!
 node_bundler = "esbuild"
 external_node_modules = ["node-fetch"]
 
@@ -21,3 +21,4 @@ status = 200
 from = "/sitemap.xml"
 to = "/.netlify/functions/sitemap"
 status = 200
+
