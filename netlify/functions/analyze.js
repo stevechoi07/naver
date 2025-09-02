@@ -1,33 +1,41 @@
-// /netlify/functions/analyze.js (v3.1 - meta 태그 스크래핑 추가)
+// /netlify/functions/analyze.js (v3.2 - 실제 선택자 적용 최종 버전)
 
 const axios = require('axios');
 const cheerio = require('cheerio');
 
 // 개별 상품 페이지를 방문해서 '속성'과 '태그' 정보를 긁어오는 탐정 함수
-async function scrapeAttributes(url) {
+async function scrapeData(url) {
     try {
         const { data: html } = await axios.get(url);
         const $ = cheerio.load(html);
         
+        // 1. '상품 속성' 긁어오기 (네가 찾아준 코드를 바탕으로!)
         const attributes = {};
-        // 1. 기존 '상품 속성' 긁어오기 (테이블)
-        $('div[class^="product_attribute"] table tbody tr').each((index, element) => {
-            const key = $(element).find('th').text().trim();
-            const value = $(element).find('td').text().trim();
-            if (key && value) {
-                attributes[key] = value;
-            }
+        $('tbody tr').each((rowIndex, rowElement) => {
+            const keys = [];
+            $(rowElement).find('th').each((keyIndex, keyElement) => {
+                keys.push($(keyElement).text().trim());
+            });
+            
+            const values = [];
+            $(rowElement).find('td').each((valueIndex, valueElement) => {
+                values.push($(valueElement).text().trim());
+            });
+
+            keys.forEach((key, index) => {
+                if (key && values[index]) {
+                    attributes[key] = values[index];
+                }
+            });
         });
 
-        // ✨ ----- 2. '키워드 태그' 긁어오기 (meta 태그) ----- ✨
-        let tags = [];
-        // 'keywords'라는 이름(name)을 가진 meta 태그를 찾습니다.
-        const keywordsContent = $('meta[name="keywords"]').attr('content');
-        
-        if (keywordsContent) {
-            // 쉼표(,)를 기준으로 잘라서 배열로 만듭니다.
-            tags = keywordsContent.split(',').map(tag => tag.trim());
-        }
+        // 2. '태그 정보' 긁어오기 (네가 찾아준 코드를 바탕으로!)
+        const tags = [];
+        $('ul.lq1wDHp4iu a').each((index, element) => {
+            // '#' 문자를 제거해서 깔끔한 텍스트만 저장합니다.
+            const tag = $(element).text().trim().replace('#', '');
+            tags.push(tag);
+        });
 
         // 3. 두 가지 정보를 모두 반환하기
         return { attributes, tags };
@@ -39,6 +47,7 @@ async function scrapeAttributes(url) {
 }
 
 exports.handler = async function(event, context) {
+    // --- (이하 코드는 이전과 동일) ---
     const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } = process.env;
     const keyword = event.queryStringParameters.keyword;
 
@@ -63,7 +72,7 @@ exports.handler = async function(event, context) {
         const response = await axios.get(url, { params, headers });
         const items = response.data.items;
 
-        const scrapingJobs = items.map(item => scrapeAttributes(item.link));
+        const scrapingJobs = items.map(item => scrapeData(item.link));
         const scrapedDataArray = await Promise.all(scrapingJobs);
 
         const finalResults = items.map((item, index) => ({
