@@ -1,19 +1,20 @@
-// /netlify/functions/analyze.js (v3.5 - Referer 헤더 추가)
+// /netlify/functions/analyze.js (v3.6 - 요청 지연 추가)
 
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+// 지정된 시간(밀리초)만큼 코드를 잠시 멈추게 하는 함수
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 async function scrapeData(url) {
     try {
-        // ✨ 위장술을 업그레이드합니다!
         const headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Referer': 'https://search.shopping.naver.com/' // ✨ "네이버 검색에서 왔어요"라고 알려줍니다.
+            'Referer': 'https://search.shopping.naver.com/'
         };
         const { data: html } = await axios.get(url, { headers });
         const $ = cheerio.load(html);
         
-        // ... (이하 스크래핑 로직은 동일) ...
         const attributes = {};
         $('tbody tr').each((rowIndex, rowElement) => {
             const keys = [];
@@ -30,13 +31,11 @@ async function scrapeData(url) {
         });
 
         return { attributes, tags };
-
     } catch (error) {
         return { error: `스크래핑 실패: ${error.message}`, attributes: {}, tags: [] };
     }
 }
 
-// 이하 handler 함수는 이전과 동일합니다.
 exports.handler = async function(event, context) {
     const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } = process.env;
     const keyword = event.queryStringParameters.keyword;
@@ -58,6 +57,8 @@ exports.handler = async function(event, context) {
                 ...item,
                 ...scrapedData
             });
+            // ✨ 다음 요청으로 넘어가기 전에 200밀리초(0.2초) 쉽니다.
+            await delay(200); 
         }
 
         return {
