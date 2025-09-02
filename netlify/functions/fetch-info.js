@@ -1,99 +1,60 @@
-// [v1.10] '전광석화' 최종 버전
-// Netlify의 10초 폭탄이 터지기 전에, 9초 안에 스스로 작전을 판단하고 보고한다!
-const axios = require('axios');
+// [v2.0] '스마트스토어 전문의' 최종 버전
+// axios, 프록시, 타임아웃 등 모든 잠입 장비 제거!
+// 오직 프론트엔드에서 전달받은 HTML 코드만 'cheerio' 메스로 분석한다.
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
-  const targetUrl = event.queryStringParameters.url;
-  const isDebugMode = event.queryStringParameters.debug === 'true';
-
-  if (!targetUrl) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'URL을 입력해주세요.' }),
-    };
-  }
-
-  const proxyUrl = 'https://api.allorigins.win/raw?url=';
-  const fullUrl = `${proxyUrl}${encodeURIComponent(targetUrl)}`;
-
   try {
-    const response = await axios.get(fullUrl, {
-      // ⭐ 작전명: 전광석화 (Operation: Lightning Speed) ⭐
-      // Netlify의 10초 '하드 리미트'가 터지기 전에 결과를 보기 위해 타임아웃을 9초로 설정!
-      timeout: 9000, 
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-        'Referer': 'https://www.naver.com/',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
-    });
+    // v2.0 핵심: event.queryStringParameters (GET) 대신 event.body (POST)에서 데이터를 받는다.
+    if (!event.body) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: '분석할 HTML 코드가 없습니다.' }),
+        };
+    }
 
-    const html = response.data;
+    const { html } = JSON.parse(event.body);
 
-    if (isDebugMode) {
+    if (!html) {
       return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        body: html,
+        statusCode: 400,
+        body: JSON.stringify({ error: '전달된 HTML 데이터가 비어있습니다.' }),
       };
     }
 
+    // v2.0 핵심: 이제는 복잡한 분기 없이 오직 스마트스토어 분석 로직만 존재!
     const $ = cheerio.load(html);
-    let attributes = [];
-    let tags = [];
+    const attributes = [];
+    const tags = [];
 
-    if (targetUrl.includes('smartstore.naver.com')) {
-      $('div[class^="_2_Ac3_-pd-"] table tbody tr').each((i, elem) => {
-        const th = $(elem).find('th').text().trim();
-        const td = $(elem).find('td').text().trim();
-        if (th && td) {
-          attributes.push({ key: th, value: td });
-        }
-      });
-      $('a[class^="TagGroup_tag__"]').each((i, elem) => {
-        tags.push($(elem).text().trim());
-      });
-    } else if (targetUrl.includes('search.shopping.naver.com/catalog')) {
-      $('div[class^="product_info_item__"] div[class^="product_info_basis__"]').each((i, elem) => {
-        const key = $(elem).find('div[class^="product_info_title__"]').text().trim();
-        const value = $(elem).find('div[class^="product_info_value__"]').text().trim();
-        if (key && value) {
-          attributes.push({ key, value });
-        }
-      });
-      $('a[class^="top_breadcrumb_item__"]').each((i, elem) => {
-        tags.push($(elem).text().trim());
-      });
-    }
+    // 스마트스토어 '상품 속성' 추출 로직 (기존과 동일)
+    $('div[class^="_2_Ac3_-pd-"] table tbody tr').each((i, elem) => {
+      const th = $(elem).find('th').text().trim();
+      const td = $(elem).find('td').text().trim();
+      if (th && td) {
+        attributes.push({ key: th, value: td });
+      }
+    });
 
+    // 스마트스토어 '관련 태그' 추출 로직 (기존과 동일)
+    $('a[class^="TagGroup_tag__"]').each((i, elem) => {
+      tags.push($(elem).text().trim());
+    });
+    
+    // 분석 결과를 성공적으로 반환
     return {
       statusCode: 200,
       body: JSON.stringify({ attributes, tags }),
     };
-  } catch (error) {
-    const blackbox = {};
-    if (error.response) {
-      blackbox.reason = 'Server responded with an error';
-      blackbox.status = error.response.status;
-      blackbox.statusText = error.response.statusText;
-      blackbox.data = error.response.data;
-    } else if (error.request) {
-      blackbox.reason = 'No response received from server';
-      // axios 타임아웃 에러 메시지를 명확하게 포함!
-      if (error.code === 'ECONNABORTED') {
-        blackbox.details = `Request timed out after ${error.config.timeout}ms`;
-      }
-    } else {
-      blackbox.reason = 'Error setting up the request';
-      blackbox.message = error.message;
-    }
 
+  } catch (error) {
+    // v2.0 핵심: 복잡한 블랙박스 대신, 간결한 에러 핸들링!
+    console.error('HTML Parsing Error:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "요원이 작전 중 기절했습니다! (아래 블랙박스 기록 확인)",
-        blackbox: blackbox,
+        error: 'HTML 코드를 분석하는 중에 에러가 발생했습니다.',
+        details: error.message,
       }),
     };
   }

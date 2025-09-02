@@ -3,180 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트스토어 정보 추출기 v1.6</title>
+    <title>HTML 청진기 v2.0 - 스마트스토어 전문 분석</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-        }
-        .tag {
-            transition: all 0.2s ease-in-out;
-        }
-        .tag:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        #loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #6366f1;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .result-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-6 md:p-10 space-y-8">
-        <!-- 헤더 -->
-        <div class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">🚀 스마트스토어 정보 추출기 v1.6</h1>
-            <p class="text-gray-500 mt-2">네이버 스마트스토어 또는 쇼핑 카탈로그 URL을 입력하고 정보를 추출하세요!</p>
-        </div>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
 
-        <!-- URL 입력 폼 -->
-        <div class="flex flex-col sm:flex-row gap-3">
-            <input type="url" id="productUrl" placeholder="https://smartstore.naver.com/..." class="flex-grow p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300" />
-            <button id="extractBtn" class="bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                정보 추출!
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-8 space-y-6">
+        
+        <header class="text-center">
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v2.0</h1>
+            <p class="text-lg text-gray-600 mt-2">스마트스토어 전문 클리닉</p>
+        </header>
+
+        <div class="space-y-4">
+            <!-- v2.0 핵심: URL 입력창 대신 거대한 HTML 수술대(textarea)를 배치! -->
+            <div>
+                <label for="html-input" class="block text-sm font-medium text-gray-700 mb-2">1. 스마트스토어 HTML 코드 붙여넣기:</label>
+                <textarea id="html-input" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="[Ctrl+A]로 전체 선택 후 [Ctrl+C]로 복사한 HTML 소스 코드를 여기에 [Ctrl+V]로 붙여넣어 주세요."></textarea>
+            </div>
+
+            <!-- v2.0 핵심: 라디오 버튼 제거! 오직 하나의 '분석 시작' 버튼만 존재! -->
+            <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
+                분석 시작!
             </button>
         </div>
 
         <!-- 결과 표시 영역 -->
-        <div id="resultArea" class="space-y-8 pt-8 border-t-2 border-gray-100 hidden">
-            <!-- 상품 속성 -->
+        <div id="status-message" class="text-center p-4 rounded-lg bg-gray-50 hidden"></div>
+        
+        <div class="space-y-6">
             <div>
-                <h2 class="text-2xl font-bold text-gray-700 mb-4">📋 상품 속성</h2>
-                <div id="attributesResult" class="overflow-x-auto">
-                    <!-- 속성 정보가 여기에 동적으로 추가됩니다. -->
-                </div>
+                <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">상품 속성</h2>
+                <div id="attributes-result" class="p-4 bg-gray-50 rounded-lg min-h-[100px]">분석 대기 중...</div>
             </div>
-
-            <!-- 관련 태그 -->
             <div>
-                <h2 class="text-2xl font-bold text-gray-700 mb-4">🏷️ 관련 태그</h2>
-                <div id="tagsResult" class="flex flex-wrap gap-3">
-                    <!-- 관련 태그가 여기에 동적으로 추가됩니다. -->
-                </div>
+                <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">관련 태그</h2>
+                <div id="tags-result" class="p-4 bg-gray-50 rounded-lg min-h-[50px] flex flex-wrap gap-2">분석 대기 중...</div>
             </div>
         </div>
-
-        <!-- 로딩 및 메시지 영역 -->
-        <div id="messageArea" class="text-center py-10 hidden">
-             <div id="loader" class="mx-auto"></div>
-             <p id="messageText" class="text-gray-600 font-semibold mt-4"></p>
-        </div>
-
     </div>
 
     <script>
-        const extractBtn = document.getElementById('extractBtn');
-        const productUrlInput = document.getElementById('productUrl');
-        const resultArea = document.getElementById('resultArea');
-        const attributesResult = document.getElementById('attributesResult');
-        const tagsResult = document.getElementById('tagsResult');
-        const messageArea = document.getElementById('messageArea');
-        const loader = document.getElementById('loader');
-        const messageText = document.getElementById('messageText');
+        const analyzeButton = document.getElementById('analyze-button');
+        const htmlInput = document.getElementById('html-input');
+        const statusMessage = document.getElementById('status-message');
+        const attributesResult = document.getElementById('attributes-result');
+        const tagsResult = document.getElementById('tags-result');
 
-        console.log("✅ 스크립트 로드 완료! (v1.6)");
+        analyzeButton.addEventListener('click', async () => {
+            const htmlContent = htmlInput.value;
 
-        extractBtn.addEventListener('click', async () => {
-            const url = productUrlInput.value.trim();
-            
-            if (!url) {
-                alert('상품 URL을 입력해주세요!');
+            if (!htmlContent.trim()) {
+                showMessage('HTML 코드를 붙여넣어 주세요.', 'error');
                 return;
             }
 
-            const cleanedUrl = url.split('?')[0];
-
-            console.log(`[1단계] 추출 시작!`);
-            console.log(`- 원본 URL: ${url}`);
-            console.log(`- 정제된 URL: ${cleanedUrl}`);
-
-            resultArea.classList.add('hidden');
-            messageArea.classList.remove('hidden');
-            loader.style.display = 'block';
-            messageText.textContent = '🕵️‍♂️ 비밀 요원이 정보를 수집하는 중... (v1.6 최종 작전!)';
+            // 초기화 및 로딩 상태 표시
             attributesResult.innerHTML = '';
             tagsResult.innerHTML = '';
+            showMessage('천재 외과의가 분석 중입니다... 🩺', 'loading');
 
             try {
-                console.log(`[2단계] 비밀 요원 호출! -> /.netlify/functions/fetch-info?url=${encodeURIComponent(cleanedUrl)}`);
-                const response = await fetch(`/.netlify/functions/fetch-info?url=${encodeURIComponent(cleanedUrl)}`);
-                console.log('[3단계] 비밀 요원으로부터 응답 도착!', response);
+                // v2.0 핵심: GET 대신 POST 방식으로, URL 대신 HTML 코드를 직접 전송!
+                const response = await fetch('/.netlify/functions/fetch-info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ html: htmlContent })
+                });
 
                 if (!response.ok) {
-                    let errorMsg = `서버 오류 (${response.status})`;
-                    try {
-                        const errorData = await response.json();
-                        errorMsg = errorData.error || errorMsg;
-                    } catch (e) {
-                        const textError = await response.text();
-                         errorMsg = textError || errorMsg;
-                    }
-                    throw new Error(errorMsg);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `서버 에러: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('[4단계] 데이터 포장 해제 완료!', data);
-
-                loader.style.display = 'none';
-                messageText.textContent = '🎉 정보 추출 성공!';
                 
-                setTimeout(() => {
-                    messageArea.classList.add('hidden');
-                    resultArea.classList.remove('hidden');
-                    
-                    if (data.attributes && data.attributes.length > 0) {
-                        const table = document.createElement('table');
-                        table.className = 'w-full text-left border-collapse';
-                        table.innerHTML = `
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="p-3 font-semibold text-gray-600 border-b">속성</th>
-                                    <th class="p-3 font-semibold text-gray-600 border-b">내용</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.attributes.map(attr => `
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="p-3 border-b border-gray-200 font-medium">${attr.name}</td>
-                                        <td class="p-3 border-b border-gray-200">${attr.value}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        `;
-                        attributesResult.appendChild(table);
-                    } else {
-                        attributesResult.innerHTML = '<p class="text-gray-500">추출된 상품 속성이 없습니다.</p>';
-                    }
-
-                    if (data.tags && data.tags.length > 0) {
-                        data.tags.forEach(tag => {
-                            const tagElement = document.createElement('span');
-                            tagElement.className = 'tag bg-indigo-100 text-indigo-800 text-sm font-medium px-4 py-2 rounded-full cursor-pointer';
-                            tagElement.textContent = `#${tag}`;
-                            tagsResult.appendChild(tagElement);
-                        });
-                    } else {
-                        tagsResult.innerHTML = '<p class="text-gray-500">추출된 관련 태그가 없습니다.</p>';
-                    }
-                    console.log("[5단계] 무대 위에 정보 전시 완료!");
-                }, 1000);
+                showMessage('분석 완료! 결과를 확인하세요.', 'success');
+                displayResults(data);
 
             } catch (error) {
-                console.error('[🚨 비상! 비상!] 에러 발생:', error);
-                loader.style.display = 'none';
-                messageText.textContent = `😭 이런! 오류가 발생했어요: ${error.message}`;
+                showMessage(`분석 실패: ${error.message}`, 'error');
+                attributesResult.textContent = '분석에 실패했습니다.';
+                tagsResult.textContent = '분석에 실패했습니다.';
             }
         });
+
+        function showMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'text-center p-4 rounded-lg'; // Reset classes
+            statusMessage.classList.remove('hidden');
+
+            if (type === 'loading') {
+                statusMessage.classList.add('bg-blue-100', 'text-blue-800');
+            } else if (type === 'success') {
+                statusMessage.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                statusMessage.classList.add('bg-red-100', 'text-red-800');
+            }
+        }
+
+        function displayResults({ attributes, tags }) {
+            // 상품 속성 표시
+            if (attributes && attributes.length > 0) {
+                const grid = document.createElement('div');
+                grid.className = 'result-grid';
+                attributes.forEach(({ key, value }) => {
+                    const keyEl = document.createElement('div');
+                    keyEl.className = 'font-semibold bg-white p-2 rounded';
+                    keyEl.textContent = key;
+                    grid.appendChild(keyEl);
+
+                    const valueEl = document.createElement('div');
+                    valueEl.className = 'bg-white p-2 rounded';
+                    valueEl.textContent = value;
+                    grid.appendChild(valueEl);
+                });
+                attributesResult.appendChild(grid);
+            } else {
+                attributesResult.textContent = '추출된 상품 속성이 없습니다.';
+            }
+
+            // 관련 태그 표시
+            if (tags && tags.length > 0) {
+                tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'bg-blue-200 text-blue-800 text-sm font-medium px-3 py-1 rounded-full';
+                    tagEl.textContent = tag;
+                    tagsResult.appendChild(tagEl);
+                });
+            } else {
+                tagsResult.textContent = '추출된 관련 태그가 없습니다.';
+            }
+        }
     </script>
+
 </body>
 </html>
