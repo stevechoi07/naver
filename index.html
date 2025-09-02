@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v4.0 - 종합 데이터 분석 센터</title>
+    <title>HTML 청진기 v4.1 - 종합 데이터 분석 센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -24,7 +24,7 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v4.0</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v4.1</h1>
             <p class="text-lg text-gray-600 mt-2">'종합 데이터 분석 센터' 에디션</p>
         </header>
 
@@ -199,6 +199,16 @@
         }
         
         analyzeButton.addEventListener('click', handleManualAnalysis);
+        
+        // --- BUG FIX: This function was missing! ---
+        function showAnalyzeMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'text-center p-3 rounded-lg text-sm';
+            statusMessage.classList.remove('hidden');
+            const typeClasses = { loading: 'bg-blue-100 text-blue-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
+            if(typeClasses[type]) statusMessage.classList.add(...typeClasses[type].split(' '));
+        }
+        // --- END BUG FIX ---
         
         async function handleManualAnalysis() {
             const htmlContent = htmlInput.value;
