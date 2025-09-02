@@ -1,5 +1,5 @@
-// [v1.7.1] '인내심 강화 키트' 탑재 버전!
-// 성급한 axios의 타임아웃을 20초로 늘리고, 디버깅 모드를 탑재하여 작전 수행 능력을 강화했다.
+// [v1.8] '새로운 비밀 통로' 개척 버전!
+// 배신한 cors.sh를 버리고, 새로운 프록시 allorigins.win을 긴급 투입한다.
 const axios = require('axios');
 const cheerio = require('cheerio');
 
@@ -15,13 +15,14 @@ exports.handler = async function (event, context) {
     };
   }
 
-  const proxyUrl = 'https://cors.sh/';
-  const fullUrl = `${proxyUrl}${targetUrl}`;
+  // ⭐ 작전명: 새로운 비밀 통로를 개척하라! ⭐
+  // 기존 cors.sh 서버가 404 에러를 반환하여, 더 안정적인 allorigins.win으로 교체!
+  // URL 구조가 다르므로, targetUrl을 인코딩하여 쿼리 파라미터로 넘겨준다.
+  const proxyUrl = 'https://api.allorigins.win/raw?url=';
+  const fullUrl = `${proxyUrl}${encodeURIComponent(targetUrl)}`;
+
 
   try {
-    // ⭐ 작전명: 성급한 axios 길들이기! ⭐
-    // 기본 대기 시간(약 15초)이 너무 짧아 작전에 실패하는 것을 방지하기 위해,
-    // 대기 시간을 20초(20000ms)로 넉넉하게 설정!
     const response = await axios.get(fullUrl, {
       timeout: 20000, // 20초 안에 응답이 없으면 작전 실패로 간주!
       headers: {
@@ -49,7 +50,6 @@ exports.handler = async function (event, context) {
 
     // '만능 스캐너' 로직: URL에 따라 분기 처리
     if (targetUrl.includes('smartstore.naver.com')) {
-      // 스마트스토어 파싱 로직
       $('div[class^="_2_Ac3_-pd-"] table tbody tr').each((i, elem) => {
         const th = $(elem).find('th').text().trim();
         const td = $(elem).find('td').text().trim();
@@ -61,7 +61,6 @@ exports.handler = async function (event, context) {
         tags.push($(elem).text().trim());
       });
     } else if (targetUrl.includes('search.shopping.naver.com/catalog')) {
-      // 쇼핑 카탈로그 파싱 로직
       $('div[class^="product_info_item__"] div[class^="product_info_basis__"]').each((i, elem) => {
         const key = $(elem).find('div[class^="product_info_title__"]').text().trim();
         const value = $(elem).find('div[class^="product_info_value__"]').text().trim();
