@@ -1,7 +1,6 @@
-// [v2.3] 'HTML CSI' 버전
-// 상품 속성 테이블의 복잡한 구조를 완벽하게 분해하는 '핀셋 수술' 로직 도입
-// 관련 태그 탐지 범위를 넓히는 '광역 탐지' 스킬 적용
-// 분석 과정을 낱낱이 기록하는 '블랙박스(디버깅)' 기능 탑재!
+// [v2.4] 'X-RAY 투시' 버전
+// 관련 태그 탐지 방식을 meta[name="keywords"] 태그를 직접 분석하는 'X-RAY' 스킬로 업그레이드!
+// 더 이상 눈에 보이는 HTML 구조에만 의존하지 않는다!
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
@@ -27,7 +26,7 @@ exports.handler = async function (event, context) {
     const attributes = [];
     const tags = [];
     
-    // [v2.3] CSI 수사 기록을 위한 블랙박스 변수
+    // [v2.3] CSI 수사 기록을 위한 블랙박스 변수 (v2.4에서도 유지)
     let debug_attributes_html = 'N/A';
     let debug_attributes_count = 0;
     let debug_tags_html = 'N/A';
@@ -39,15 +38,13 @@ exports.handler = async function (event, context) {
         productName = productName.split(':')[0].trim();
     }
 
-    // [v2.3] 상품 속성 '핀셋 수술' 로직
-    // 한 줄(tr)에 여러 개의 '항목(th)-값(td)' 쌍이 있는 구조에 대응!
+    // [v2.3] 상품 속성 '핀셋 수술' 로직 (v2.4에서도 유지)
     const attributeTable = $('div.detail_attributes table.RCLS1uAn0a');
     debug_attributes_html = attributeTable.parent().html() || '속성 테이블 영역을 찾지 못했습니다.';
 
     attributeTable.find('tbody tr').each((i, tr_elem) => {
       debug_attributes_count++; // 발견한 줄(tr) 개수 카운트
       const cells = $(tr_elem).children('th, td'); // th와 td를 순서대로 모두 가져옴
-      // 2개씩 쌍을 지어 (th-td), (th-td)... 순서로 처리
       for (let i = 0; i < cells.length; i += 2) {
         const key = $(cells[i]).text().trim();
         const value = $(cells[i + 1]).text().trim();
@@ -57,20 +54,25 @@ exports.handler = async function (event, context) {
       }
     });
 
-    // [v2.3] 관련 태그 '광역 탐지' 로직
-    // 특정 클래스 이름(og34GRpFBf)을 고집하지 않고, 동네(NAR95xKIue) 안에 있는 모든 링크(a)를 탐색!
-    const tagContainer = $('div.NAR95xKIue');
-    debug_tags_html = tagContainer.html() || '관련 태그 영역을 찾지 못했습니다.';
+    // [v2.4] ★★★★★ 관련 태그 'X-RAY 투시' 로직 ★★★★★
+    // 눈에 보이지 않는 meta[name="keywords"] 태그의 content를 직접 분석!
+    const keywordsMeta = $('meta[name="keywords"]');
+    const keywordsContent = keywordsMeta.attr('content');
     
-    tagContainer.find('a').each((i, elem) => {
-      debug_tags_count++; // 발견한 링크(a) 개수 카운트
-      const tagText = $(elem).text().trim().replace('#', '');
-      if (tagText) {
-          tags.push(tagText);
-      }
-    });
+    // 디버깅을 위해 meta 태그 자체를 기록
+    debug_tags_html = keywordsMeta.parent().html().match(/<meta name="keywords"[^>]*>/)?.[0] || 'keywords meta 태그를 찾지 못했습니다.';
+
+    if (keywordsContent) {
+      // content를 쉼표(,)로 분리하여 배열로 만들고, 각 태그의 양쪽 공백을 제거합니다.
+      const keywordArray = keywordsContent.split(',').map(tag => tag.trim()).filter(tag => tag); // 비어있는 태그는 제거
+      tags.push(...keywordArray);
+      debug_tags_count = keywordArray.length; // 발견한 태그 개수 카운트
+    } else {
+      // meta 태그가 없는 경우를 대비
+      debug_tags_count = 0;
+    }
     
-    // [v2.3] 최종 분석 결과와 함께 '블랙박스(디버깅)' 기록을 반환!
+    // [v2.4] 최종 분석 결과와 함께 '블랙박스(디버깅)' 기록을 반환!
     return {
       statusCode: 200,
       body: JSON.stringify({
