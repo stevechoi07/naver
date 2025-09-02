@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v3.3 - 원클릭 협진 시스템</title>
+    <title>HTML 청진기 v3.5 - VIP 에스코트 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -15,15 +15,37 @@
         #search-results::-webkit-scrollbar-track, #html-input::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px;}
         #search-results::-webkit-scrollbar-thumb, #html-input::-webkit-scrollbar-thumb { background: #888; border-radius: 10px;}
         #search-results::-webkit-scrollbar-thumb:hover, #html-input::-webkit-scrollbar-thumb:hover { background: #555; }
-        .product-card { cursor: pointer; }
+        .product-card { transition: all 0.2s ease-in-out; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 10;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s, bottom 0.3s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v3.3</h1>
-            <p class="text-lg text-gray-600 mt-2">원클릭 협진 시스템 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v3.5</h1>
+            <p class="text-lg text-gray-600 mt-2">'VIP 에스코트' 에디션</p>
         </header>
 
         <div class="md:grid md:grid-cols-2 md:gap-8">
@@ -49,13 +71,19 @@
             <!-- Right Column: HTML Stethoscope -->
             <div class="w-full bg-white rounded-2xl shadow-2xl p-8 space-y-6">
                  <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
-                 <p class="text-sm text-gray-500 -mt-4">왼쪽에서 상품을 클릭하면 자동으로 분석됩니다. 또는, HTML 코드를 직접 붙여넣고 분석할 수 있습니다.</p>
+                 <div class="text-sm text-gray-600 -mt-4 bg-blue-50 p-3 rounded-lg">
+                    <p class="font-semibold">✨ 사용 가이드:</p>
+                    <ol class="list-decimal list-inside mt-1 space-y-1">
+                        <li>왼쪽에서 분석하고 싶은 상품을 <span class="font-bold text-green-600">클릭</span>하여 새 탭으로 여세요.</li>
+                        <li>새 탭이 열리면, <span class="font-bold text-red-500">F12</span> 키를 눌러 개발자 도구를 여세요!</li>
+                        <li>페이지 소스 전체 복사(<span class="font-bold">Ctrl+A, Ctrl+C</span>) 후 아래에 붙여넣기!</li>
+                    </ol>
+                 </div>
                 <div>
-                    <label for="html-input" class="block text-sm font-medium text-gray-700 mb-2">분석할 HTML 소스 코드:</label>
-                    <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="왼쪽에서 상품을 클릭하거나, 코드를 직접 붙여넣어 주세요."></textarea>
+                    <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="여기에 HTML 코드를 붙여넣어 주세요."></textarea>
                 </div>
                 <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
-                    수동 정밀 분석!
+                    정밀 분석 시작!
                 </button>
                 <div id="status-message" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
                 
@@ -92,6 +120,8 @@
             </div>
         </div>
     </div>
+    
+    <div id="toast-notification" class="toast"></div>
 
     <script>
         const searchButton = document.getElementById('search-button');
@@ -109,12 +139,13 @@
         const debugAttributesHtml = document.getElementById('debug-attributes-html');
         const debugTagsCount = document.getElementById('debug-tags-count');
         const debugTagsHtml = document.getElementById('debug-tags-html');
+        const toast = document.getElementById('toast-notification');
 
         const setLoadingState = (isLoading) => {
             searchButton.disabled = isLoading;
             analyzeButton.disabled = isLoading;
             searchButton.textContent = isLoading ? '조사 중...' : '시장 조사 시작!';
-            analyzeButton.textContent = isLoading ? '분석 중...' : '수동 정밀 분석!';
+            analyzeButton.textContent = isLoading ? '분석 중...' : '정밀 분석 시작!';
             searchButton.classList.toggle('opacity-50', isLoading);
             analyzeButton.classList.toggle('opacity-50', isLoading);
         };
@@ -169,47 +200,22 @@
             }
 
             results.forEach(product => {
-                const productCard = document.createElement('div');
-                productCard.className = 'product-card p-3 border border-gray-200 rounded-lg hover:shadow-md hover:border-green-400 transition-all duration-200';
+                const productCard = document.createElement('a');
+                productCard.href = product.link;
+                productCard.target = "_blank";
+                productCard.rel = "noopener noreferrer";
+                productCard.className = 'product-card block p-3 border border-gray-200 rounded-lg';
                 productCard.innerHTML = `
-                    <button class="w-full text-left" data-url="${product.link}">
-                        <img src="${product.imageUrl}" alt="${product.title}" class="w-full h-32 object-cover rounded-md mb-3 pointer-events-none" onerror="this.onerror=null;this.src='https://placehold.co/200x150/e2e8f0/adb5bd?text=Image+Error';">
-                        <h3 class="font-semibold text-sm text-gray-800 truncate pointer-events-none" title="${product.title}">${product.title}</h3>
-                        <p class="text-green-700 font-bold mt-1 pointer-events-none">${product.price}원</p>
-                    </button>
+                    <div class="flex flex-col h-full">
+                        <img src="${product.imageUrl}" alt="${product.title}" class="w-full h-32 object-cover rounded-md mb-3" onerror="this.onerror=null;this.src='https://placehold.co/200x150/e2e8f0/adb5bd?text=Image+Error';">
+                        <div class="flex-grow">
+                            <h3 class="font-semibold text-sm text-gray-800 h-10 overflow-hidden" title="${product.title}">${product.title}</h3>
+                            <p class="text-green-700 font-bold mt-1">${product.price}원</p>
+                        </div>
+                    </div>
                 `;
-                productCard.querySelector('button').addEventListener('click', () => handleProductClick(product.link, product.title));
                 searchResultsContainer.appendChild(productCard);
             });
-        }
-        
-        async function handleProductClick(url, title) {
-            showAnalyzeMessage(`원격 진료 시작! '${title}' 상품 분석 중... 🚑`, 'loading');
-            clearAnalysisResults();
-            htmlInput.value = '';
-            setLoadingState(true);
-
-            try {
-                const response = await fetch('/.netlify/functions/parse-product', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `서버 에러: ${response.status}`);
-                }
-
-                const data = await response.json();
-                showAnalyzeMessage('원격 진료 및 분석 완료!', 'success');
-                displayAnalysisResults(data);
-                displayDebugInfo(data.debug);
-            } catch (error) {
-                showAnalyzeMessage(`원격 진료 실패: ${error.message}`, 'error');
-            } finally {
-                setLoadingState(false);
-            }
         }
         
         analyzeButton.addEventListener('click', handleManualAnalysis);
@@ -248,7 +254,7 @@
         }
 
         function clearAnalysisResults() {
-             productNameResult.innerHTML = '...';
+            productNameResult.innerHTML = '...';
             attributesResult.innerHTML = '...';
             tagsResult.innerHTML = '...';
             displayDebugInfo(null);
