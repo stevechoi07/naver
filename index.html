@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v2.0 - 스마트스토어 전문 분석</title>
+    <title>HTML 청진기 v2.1 - 스마트스토어 전문 분석</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -17,18 +17,16 @@
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-8 space-y-6">
         
         <header class="text-center">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v2.0</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v2.1</h1>
             <p class="text-lg text-gray-600 mt-2">스마트스토어 전문 클리닉</p>
         </header>
 
         <div class="space-y-4">
-            <!-- v2.0 핵심: URL 입력창 대신 거대한 HTML 수술대(textarea)를 배치! -->
             <div>
                 <label for="html-input" class="block text-sm font-medium text-gray-700 mb-2">1. 스마트스토어 HTML 코드 붙여넣기:</label>
                 <textarea id="html-input" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="[Ctrl+A]로 전체 선택 후 [Ctrl+C]로 복사한 HTML 소스 코드를 여기에 [Ctrl+V]로 붙여넣어 주세요."></textarea>
             </div>
 
-            <!-- v2.0 핵심: 라디오 버튼 제거! 오직 하나의 '분석 시작' 버튼만 존재! -->
             <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
                 분석 시작!
             </button>
@@ -38,6 +36,11 @@
         <div id="status-message" class="text-center p-4 rounded-lg bg-gray-50 hidden"></div>
         
         <div class="space-y-6">
+            <!-- [v2.1] 신규 기능: 상품명 표시 영역 추가! -->
+            <div>
+                <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">상품명</h2>
+                <div id="product-name-result" class="p-4 bg-gray-50 rounded-lg min-h-[50px] text-xl font-semibold">분석 대기 중...</div>
+            </div>
             <div>
                 <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">상품 속성</h2>
                 <div id="attributes-result" class="p-4 bg-gray-50 rounded-lg min-h-[100px]">분석 대기 중...</div>
@@ -53,6 +56,8 @@
         const analyzeButton = document.getElementById('analyze-button');
         const htmlInput = document.getElementById('html-input');
         const statusMessage = document.getElementById('status-message');
+        // [v2.1] 신규 기능: 상품명 엘리먼트 가져오기
+        const productNameResult = document.getElementById('product-name-result');
         const attributesResult = document.getElementById('attributes-result');
         const tagsResult = document.getElementById('tags-result');
 
@@ -65,12 +70,13 @@
             }
 
             // 초기화 및 로딩 상태 표시
+            // [v2.1] 신규 기능: 상품명 영역 초기화
+            productNameResult.innerHTML = '';
             attributesResult.innerHTML = '';
             tagsResult.innerHTML = '';
             showMessage('천재 외과의가 분석 중입니다... 🩺', 'loading');
 
             try {
-                // v2.0 핵심: GET 대신 POST 방식으로, URL 대신 HTML 코드를 직접 전송!
                 const response = await fetch('/.netlify/functions/fetch-info', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -89,6 +95,8 @@
 
             } catch (error) {
                 showMessage(`분석 실패: ${error.message}`, 'error');
+                // [v2.1] 신규 기능: 상품명 영역 에러 메시지
+                productNameResult.textContent = '분석에 실패했습니다.';
                 attributesResult.textContent = '분석에 실패했습니다.';
                 tagsResult.textContent = '분석에 실패했습니다.';
             }
@@ -108,11 +116,20 @@
             }
         }
 
-        function displayResults({ attributes, tags }) {
+        // [v2.1] 신규 기능: 파라미터에 productName 추가!
+        function displayResults({ productName, attributes, tags }) {
+            // 상품명 표시
+            if (productName) {
+                productNameResult.textContent = productName;
+            } else {
+                productNameResult.textContent = '추출된 상품명이 없습니다.';
+            }
+
             // 상품 속성 표시
             if (attributes && attributes.length > 0) {
                 const grid = document.createElement('div');
                 grid.className = 'result-grid';
+                attributesResult.innerHTML = ''; // Clear previous results
                 attributes.forEach(({ key, value }) => {
                     const keyEl = document.createElement('div');
                     keyEl.className = 'font-semibold bg-white p-2 rounded';
@@ -125,12 +142,13 @@
                     grid.appendChild(valueEl);
                 });
                 attributesResult.appendChild(grid);
-            } else {
+} else {
                 attributesResult.textContent = '추출된 상품 속성이 없습니다.';
             }
 
             // 관련 태그 표시
             if (tags && tags.length > 0) {
+                tagsResult.innerHTML = ''; // Clear previous results
                 tags.forEach(tag => {
                     const tagEl = document.createElement('span');
                     tagEl.className = 'bg-blue-200 text-blue-800 text-sm font-medium px-3 py-1 rounded-full';

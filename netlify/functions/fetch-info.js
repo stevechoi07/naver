@@ -1,11 +1,10 @@
-// [v2.0] '스마트스토어 전문의' 최종 버전
-// axios, 프록시, 타임아웃 등 모든 잠입 장비 제거!
-// 오직 프론트엔드에서 전달받은 HTML 코드만 'cheerio' 메스로 분석한다.
+// [v2.1] '스마트스토어 전문의' 최종 버전
+// 낡은 CSS 선택자를 현재 네이버 구조에 맞는 최신 버전으로 교체!
+// '상품명' 추출 기능 (홍채 인식 스캐너) 신규 탑재!
 const cheerio = require('cheerio');
 
 exports.handler = async function (event, context) {
   try {
-    // v2.0 핵심: event.queryStringParameters (GET) 대신 event.body (POST)에서 데이터를 받는다.
     if (!event.body) {
         return {
             statusCode: 400,
@@ -22,13 +21,19 @@ exports.handler = async function (event, context) {
       };
     }
 
-    // v2.0 핵심: 이제는 복잡한 분기 없이 오직 스마트스토어 분석 로직만 존재!
     const $ = cheerio.load(html);
+    let productName = '';
     const attributes = [];
     const tags = [];
 
-    // 스마트스토어 '상품 속성' 추출 로직 (기존과 동일)
-    $('div[class^="_2_Ac3_-pd-"] table tbody tr').each((i, elem) => {
+    // [v2.1] 신규 기능: 상품명 추출 (홍채 인식 스캐너)
+    // NOTE: 네이버는 여러 종류의 클래스 이름을 사용하므로, 가장 일반적인 것들을 모두 찾아봅니다.
+    productName = $('h3[class*="product_title"]').text().trim() || 
+                  $('h3[class*="Name_name"]').text().trim();
+
+    // [v2.1] 지도 업데이트: 상품 속성 추출 (최신 GPS)
+    // NOTE: 좀 더 넓은 범위의, 안정적인 클래스 이름으로 교체합니다.
+    $('div[class*="attribute_wrapper"] table tbody tr, div[class*="product_info_table"] table tbody tr').each((i, elem) => {
       const th = $(elem).find('th').text().trim();
       const td = $(elem).find('td').text().trim();
       if (th && td) {
@@ -36,19 +41,19 @@ exports.handler = async function (event, context) {
       }
     });
 
-    // 스마트스토어 '관련 태그' 추출 로직 (기존과 동일)
-    $('a[class^="TagGroup_tag__"]').each((i, elem) => {
-      tags.push($(elem).text().trim());
+    // [v2.1] 지도 업데이트: 관련 태그 추출 (최신 GPS)
+    $('div[class*="TagGroup_group"] a, div[class*="tag_list_box"] a').each((i, elem) => {
+      // 태그에 붙어있는 '#' 기호는 제거하고 순수한 텍스트만 저장합니다.
+      tags.push($(elem).text().trim().replace('#', ''));
     });
     
-    // 분석 결과를 성공적으로 반환
+    // [v2.1] 분석 결과에 '상품명'을 추가하여 반환!
     return {
       statusCode: 200,
-      body: JSON.stringify({ attributes, tags }),
+      body: JSON.stringify({ productName, attributes, tags }),
     };
 
   } catch (error) {
-    // v2.0 핵심: 복잡한 블랙박스 대신, 간결한 에러 핸들링!
     console.error('HTML Parsing Error:', error);
     return {
       statusCode: 500,
