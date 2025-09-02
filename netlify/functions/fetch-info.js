@@ -1,5 +1,5 @@
-// [v1.9] 'CSI 과학수사 블랙박스' 탑재 버전!
-// 요원이 기절하더라도, 마지막 순간까지 모든 것을 기록하여 보고한다.
+// [v1.10] '전광석화' 최종 버전
+// Netlify의 10초 폭탄이 터지기 전에, 9초 안에 스스로 작전을 판단하고 보고한다!
 const axios = require('axios');
 const cheerio = require('cheerio');
 
@@ -19,7 +19,9 @@ exports.handler = async function (event, context) {
 
   try {
     const response = await axios.get(fullUrl, {
-      timeout: 20000,
+      // ⭐ 작전명: 전광석화 (Operation: Lightning Speed) ⭐
+      // Netlify의 10초 '하드 리미트'가 터지기 전에 결과를 보기 위해 타임아웃을 9초로 설정!
+      timeout: 9000, 
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
         'Referer': 'https://www.naver.com/',
@@ -70,21 +72,19 @@ exports.handler = async function (event, context) {
       body: JSON.stringify({ attributes, tags }),
     };
   } catch (error) {
-    // ⭐ 작전명: 기절한 요원에게 '블랙박스'를 달아주자! ⭐
-    // axios 에러의 상세 정보를 모두 추출하여, 기절 원인을 낱낱이 밝힌다!
     const blackbox = {};
     if (error.response) {
-      // 서버가 응답했지만, 상태 코드가 2xx 범위를 벗어남 (예: 403, 404, 500)
       blackbox.reason = 'Server responded with an error';
       blackbox.status = error.response.status;
       blackbox.statusText = error.response.statusText;
-      // blackbox.headers = error.response.headers; // 너무 길어서 일단 주석처리
-      blackbox.data = error.response.data; // 서버가 보낸 에러 메시지 (결정적 단서!)
+      blackbox.data = error.response.data;
     } else if (error.request) {
-      // 요청은 보냈지만, 응답을 받지 못함 (예: 네트워크 문제, 프록시 서버 다운)
       blackbox.reason = 'No response received from server';
+      // axios 타임아웃 에러 메시지를 명확하게 포함!
+      if (error.code === 'ECONNABORTED') {
+        blackbox.details = `Request timed out after ${error.config.timeout}ms`;
+      }
     } else {
-      // 요청을 설정하는 중에 오류 발생
       blackbox.reason = 'Error setting up the request';
       blackbox.message = error.message;
     }
