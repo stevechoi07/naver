@@ -337,7 +337,8 @@
                 }
 
                 const data = await response.json();
-                const productDetails = currentSearchResults.find(p => p.title.trim() === data.productName.trim());
+                // Find product by checking if the full name from the page STARTS WITH the truncated name from the search list
+                const productDetails = currentSearchResults.find(p => data.productName.trim().startsWith(p.title.trim()));
                 const rank = productDetails ? currentSearchResults.indexOf(productDetails) + 1 : '-';
                 
                 const newProduct = {
@@ -349,7 +350,7 @@
                 };
 
                 // 중복 분석 방지
-                if (analyzedProducts.some(p => p.link === newProduct.link && p.link !== 'manual')) {
+                if (analyzedProducts.some(p => p.link === newProduct.link && newProduct.link.startsWith('http'))) {
                      showAnalyzeMessage('이미 분석된 상품입니다.', 'error');
                      setLoadingState(false, 'analyze');
                      return;
