@@ -1,37 +1,26 @@
-# [v1.6.1 최종] 두 개의 작전 계획서를 통합한 완벽 버전!
-# 이 파일 하나면 빌드, 배포, 함수 실행까지 완벽하게 통제할 수 있다.
+# [v1.6.2 최종] '투명인간' 범인을 소탕하고 완벽한 문법으로 거듭난 버전!
+# 이제 Netlify의 깐깐한 반장님도 만족할 거다.
 
-# [build] 섹션: Netlify가 우리 사이트를 어떻게 만들지 알려주는 부분
-# 친구가 가져온 설정인데, 아주 좋은 습관이야! 그대로 유지하자.
+# [build] 섹션: Netlify 빌드 설정 (문제 없음, 그대로 유지!)
 [build]
-  # Netlify에 배포할 때 자동으로 'npm install'을 실행해서 장비를 설치해달라는 명령
-  command = "npm install"
-  # 배포할 파일들이 있는 폴더 ( '.'는 현재 폴더를 의미)
-  publish = "."
+command = "npm install"
+publish = "."
 
-# [functions] 섹션: 우리 비밀 요원(서버리스 함수)에 대한 설정
+# [functions] 섹션: 서버리스 함수 설정
+# ⭐ 진짜 범인이었던 '들여쓰기'를 모두 제거했다! ⭐
 [functions]
-  # 비밀 요원 파일들이 있는 폴더 위치
-  directory = "netlify/functions/"
-  
-  # ⭐ 이번 작전의 핵심! 작전 시간 연장! ⭐
-  # 우리 요원이 타임아웃으로 실종되지 않도록 작전 시간을 25초로 넉넉하게 보장!
-  timeout = 25
+directory = "netlify/functions/"
+timeout = 25 # <- 이 친구는 원래 죄가 없었다!
+node_bundler = "esbuild"
+external_node_modules = ["node-fetch"]
 
-  # 친구가 사용하던 전문가용 설정! 그대로 유지하자.
-  node_bundler = "esbuild"
-  # 'node-fetch'는 지금은 안 쓰지만, 나중을 위해 남겨두자.
-  external_node_modules = ["node-fetch"]
-
-# [[redirects]] 섹션: 특정 주소로 들어온 요청을 다른 곳으로 보내주는 규칙
-# 친구가 쓰던 전문가용 API 경로 단축 규칙! 그대로 사용하자.
+# [[redirects]] 섹션: 리다이렉트 규칙 (문제 없음, 그대로 유지!)
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+from = "/api/*"
+to = "/.netlify/functions/:splat"
+status = 200
 
-# 친구가 쓰던 사이트맵 규칙도 유지!
 [[redirects]]
-  from = "/sitemap.xml"
-  to = "/.netlify/functions/sitemap"
-  status = 200
+from = "/sitemap.xml"
+to = "/.netlify/functions/sitemap"
+status = 200
