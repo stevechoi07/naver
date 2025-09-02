@@ -1,165 +1,92 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v2.2 - 스마트스토어 전문 분석</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .result-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
-        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+// [v2.5] '상품 페이지 분석 전문의' (이름 변경)
+// 기존 fetch-info.js의 역할을 명확히 하기 위해 파일 이름 변경.
+// 기능은 v2.4와 동일하며, 단일 상품 페이지만을 정밀 분석합니다.
+const cheerio = require('cheerio');
 
-    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-8 space-y-6">
-        
-        <header class="text-center">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v2.2</h1>
-            <p class="text-lg text-gray-600 mt-2">스마트스토어 전문 클리닉</p>
-        </header>
+exports.handler = async function (event, context) {
+  try {
+    if (!event.body) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: '분석할 HTML 코드가 없습니다.' }),
+        };
+    }
 
-        <div class="space-y-4">
-            <div>
-                <label for="html-input" class="block text-sm font-medium text-gray-700 mb-2">1. 스마트스토어 HTML 코드 붙여넣기:</label>
-                <textarea id="html-input" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="[Ctrl+A]로 전체 선택 후 [Ctrl+C]로 복사한 HTML 소스 코드를 여기에 [Ctrl+V]로 붙여넣어 주세요."></textarea>
-            </div>
+    const { html } = JSON.parse(event.body);
 
-            <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 text-lg">
-                분석 시작!
-            </button>
-        </div>
+    if (!html) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: '전달된 HTML 데이터가 비어있습니다.' }),
+      };
+    }
 
-        <!-- 결과 표시 영역 -->
-        <div id="status-message" class="text-center p-4 rounded-lg bg-gray-50 hidden"></div>
-        
-        <div class="space-y-6">
-            <!-- [v2.1] 신규 기능: 상품명 표시 영역 추가! -->
-            <div>
-                <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">상품명</h2>
-                <div id="product-name-result" class="p-4 bg-gray-50 rounded-lg min-h-[50px] text-xl font-semibold">분석 대기 중...</div>
-            </div>
-            <div>
-                <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">상품 속성</h2>
-                <div id="attributes-result" class="p-4 bg-gray-50 rounded-lg min-h-[100px]">분석 대기 중...</div>
-            </div>
-            <div>
-                <h2 class="text-2xl font-semibold border-b-2 border-gray-200 pb-2 mb-4">관련 태그</h2>
-                <div id="tags-result" class="p-4 bg-gray-50 rounded-lg min-h-[50px] flex flex-wrap gap-2">분석 대기 중...</div>
-            </div>
-        </div>
-    </div>
+    const $ = cheerio.load(html);
+    let productName = '';
+    const attributes = [];
+    const tags = [];
+    
+    let debug_attributes_html = 'N/A';
+    let debug_attributes_count = 0;
+    let debug_tags_html = 'N/A';
+    let debug_tags_count = 0;
 
-    <script>
-        const analyzeButton = document.getElementById('analyze-button');
-        const htmlInput = document.getElementById('html-input');
-        const statusMessage = document.getElementById('status-message');
-        // [v2.1] 신규 기능: 상품명 엘리먼트 가져오기
-        const productNameResult = document.getElementById('product-name-result');
-        const attributesResult = document.getElementById('attributes-result');
-        const tagsResult = document.getElementById('tags-result');
+    productName = $('meta[property="og:title"]').attr('content') || '상품명을 찾을 수 없습니다.';
+    if (productName.includes(':')) {
+        productName = productName.split(':')[0].trim();
+    }
 
-        analyzeButton.addEventListener('click', async () => {
-            const htmlContent = htmlInput.value;
+    const attributeTable = $('div.detail_attributes table.RCLS1uAn0a');
+    debug_attributes_html = attributeTable.parent().html() || '속성 테이블 영역을 찾지 못했습니다.';
 
-            if (!htmlContent.trim()) {
-                showMessage('HTML 코드를 붙여넣어 주세요.', 'error');
-                return;
-            }
-
-            // 초기화 및 로딩 상태 표시
-            // [v2.1] 신규 기능: 상품명 영역 초기화
-            productNameResult.innerHTML = '';
-            attributesResult.innerHTML = '';
-            tagsResult.innerHTML = '';
-            showMessage('천재 외과의가 분석 중입니다... 🩺', 'loading');
-
-            try {
-                const response = await fetch('/.netlify/functions/fetch-info', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html: htmlContent })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `서버 에러: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                showMessage('분석 완료! 결과를 확인하세요.', 'success');
-                displayResults(data);
-
-            } catch (error) {
-                showMessage(`분석 실패: ${error.message}`, 'error');
-                // [v2.1] 신규 기능: 상품명 영역 에러 메시지
-                productNameResult.textContent = '분석에 실패했습니다.';
-                attributesResult.textContent = '분석에 실패했습니다.';
-                tagsResult.textContent = '분석에 실패했습니다.';
-            }
-        });
-
-        function showMessage(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = 'text-center p-4 rounded-lg'; // Reset classes
-            statusMessage.classList.remove('hidden');
-
-            if (type === 'loading') {
-                statusMessage.classList.add('bg-blue-100', 'text-blue-800');
-            } else if (type === 'success') {
-                statusMessage.classList.add('bg-green-100', 'text-green-800');
-            } else if (type === 'error') {
-                statusMessage.classList.add('bg-red-100', 'text-red-800');
-            }
+    attributeTable.find('tbody tr').each((i, tr_elem) => {
+      debug_attributes_count++;
+      const cells = $(tr_elem).children('th, td');
+      for (let i = 0; i < cells.length; i += 2) {
+        const key = $(cells[i]).text().trim();
+        const value = $(cells[i + 1]).text().trim();
+        if (key && value) {
+          attributes.push({ key, value });
         }
+      }
+    });
 
-        // [v2.1] 신규 기능: 파라미터에 productName 추가!
-        function displayResults({ productName, attributes, tags }) {
-            // 상품명 표시
-            if (productName) {
-                productNameResult.textContent = productName;
-            } else {
-                productNameResult.textContent = '추출된 상품명이 없습니다.';
-            }
+    const keywordsMeta = $('meta[name="keywords"]');
+    const keywordsContent = keywordsMeta.attr('content');
+    
+    debug_tags_html = keywordsMeta.parent().html().match(/<meta name="keywords"[^>]*>/)?.[0] || 'keywords meta 태그를 찾지 못했습니다.';
 
-            // 상품 속성 표시
-            if (attributes && attributes.length > 0) {
-                const grid = document.createElement('div');
-                grid.className = 'result-grid';
-                attributesResult.innerHTML = ''; // Clear previous results
-                attributes.forEach(({ key, value }) => {
-                    const keyEl = document.createElement('div');
-                    keyEl.className = 'font-semibold bg-white p-2 rounded';
-                    keyEl.textContent = key;
-                    grid.appendChild(keyEl);
-
-                    const valueEl = document.createElement('div');
-                    valueEl.className = 'bg-white p-2 rounded';
-                    valueEl.textContent = value;
-                    grid.appendChild(valueEl);
-                });
-                attributesResult.appendChild(grid);
-} else {
-                attributesResult.textContent = '추출된 상품 속성이 없습니다.';
-            }
-
-            // 관련 태그 표시
-            if (tags && tags.length > 0) {
-                tagsResult.innerHTML = ''; // Clear previous results
-                tags.forEach(tag => {
-                    const tagEl = document.createElement('span');
-                    tagEl.className = 'bg-blue-200 text-blue-800 text-sm font-medium px-3 py-1 rounded-full';
-                    tagEl.textContent = tag;
-                    tagsResult.appendChild(tagEl);
-                });
-            } else {
-                tagsResult.textContent = '추출된 관련 태그가 없습니다.';
-            }
+    if (keywordsContent) {
+      const keywordArray = keywordsContent.split(',').map(tag => tag.trim()).filter(tag => tag);
+      tags.push(...keywordArray);
+      debug_tags_count = keywordArray.length;
+    } else {
+      debug_tags_count = 0;
+    }
+    
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        productName,
+        attributes,
+        tags,
+        debug: {
+          attributes_html: debug_attributes_html,
+          attributes_count: debug_attributes_count,
+          tags_html: debug_tags_html,
+          tags_count: debug_tags_count,
         }
-    </script>
+      }),
+    };
 
-</body>
-</html>
+  } catch (error) {
+    console.error('HTML Parsing Error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: 'HTML 코드를 분석하는 중에 에러가 발생했습니다.',
+        details: error.message,
+      }),
+    };
+  }
+};
