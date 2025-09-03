@@ -1,90 +1,101 @@
-// script.js (v1.3 - 버그 수정)
+// Netlify 함수의 주소입니다. Netlify에 배포하면 이 주소로 동작해요.
+const FUNCTION_URL = '/.netlify/functions/search-naver';
 
-// 1. 필요한 HTML 요소들을 미리 찾아놓습니다.
-const keywordInput = document.getElementById('keyword-input');
-const analyzeBtn = document.getElementById('analyze-btn');
-const loadingIndicator = document.getElementById('loading');
-const resultsContainer = document.getElementById('results-container');
+// HTML 요소들을 가져옵니다.
+const marketKeywordInput = document.getElementById('market-keyword');
+const marketAnalysisBtn = document.getElementById('market-analysis-btn');
 
-// 2. '분석 시작' 버튼을 클릭했을 때 일어날 일을 정의합니다.
-analyzeBtn.addEventListener('click', async () => {
-    const keyword = keywordInput.value;
+const rankKeywordInput = document.getElementById('rank-keyword');
+const productNameInput = document.getElementById('product-name');
+const storeNameInput = document.getElementById('store-name');
+const rankCheckBtn = document.getElementById('rank-check-btn');
+
+const loader = document.getElementById('loader');
+const resultContent = document.getElementById('result-content');
+
+// 로딩 화면을 보여주고/숨기는 함수
+const showLoader = (show) => {
+    loader.style.display = show ? 'block' : 'none';
+};
+
+// 결과를 화면에 표시하는 함수
+const displayResult = (data) => {
+    // 객체 형태의 데이터를 예쁘게 문자열로 변환해서 보여줍니다.
+    resultContent.textContent = JSON.stringify(data, null, 2);
+};
+
+// '시장 분석 시작' 버튼 클릭 이벤트
+marketAnalysisBtn.addEventListener('click', async () => {
+    const keyword = marketKeywordInput.value.trim();
     if (!keyword) {
-        alert('키워드를 입력해 주세요!');
+        alert('분석할 키워드를 입력해주세요!');
         return;
     }
 
-    // 3. 로딩 화면을 보여주고, 이전 결과는 깨끗하게 지웁니다.
-    loadingIndicator.style.display = 'block';
-    resultsContainer.innerHTML = '';
+    showLoader(true);
+    resultContent.textContent = ''; // 이전 결과 초기화
 
     try {
-        // 4. 우리 주방(Back-end)에 요리(분석)를 주문합니다!
-        const response = await fetch(`/api/analyze?keyword=${keyword}`);
-        const results = await response.json();
+        const response = await fetch(FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keyword: keyword }) // mode가 없으면 기본 모드로 동작
+        });
 
-        // 5. 요리가 도착하면 화면에 예쁘게 차려줍니다.
-        displayResults(results);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '알 수 없는 오류가 발생했습니다.');
+        }
+
+        displayResult(data.results);
 
     } catch (error) {
-        resultsContainer.innerHTML = `에러가 발생했습니다: ${error.message}`;
+        resultContent.textContent = `오류 발생: ${error.message}`;
     } finally {
-        // 6. 모든 과정이 끝나면 로딩 화면을 숨깁니다.
-        loadingIndicator.style.display = 'none';
+        showLoader(false);
     }
 });
 
-// 받아온 데이터를 화면에 표시하는 함수
-function displayResults(items) {
-    if (!items || items.length === 0) {
-        resultsContainer.innerHTML = '분석 결과가 없습니다.';
+
+// '내 순위 추적!' 버튼 클릭 이벤트
+rankCheckBtn.addEventListener('click', async () => {
+    const keyword = rankKeywordInput.value.trim();
+    const productName = productNameInput.value.trim();
+    const storeName = storeNameInput.value.trim();
+
+    if (!keyword || !productName) {
+        alert('키워드와 상품명은 필수 입력 항목입니다!');
         return;
     }
+    
+    showLoader(true);
+    resultContent.textContent = ''; // 이전 결과 초기화
 
-    items.forEach(item => {
-        const cleanTitle = item.title.replace(/<[^>]*>/g, '');
+    try {
+        const response = await fetch(FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mode: 'rankCheck',
+                // search-naver.js가 keyword 객체 안의 keyword를 사용하므로 이 구조를 따릅니다.
+                keyword: { keyword: keyword, id: 1 }, 
+                productName: productName,
+                storeName: storeName
+            })
+        });
         
-        let detailsHTML = '';
-        // ✨ 만약 스크래핑 에러가 있다면, item.error를 확인하도록 수정!
-        if (item.error) {
-            detailsHTML = `<span style="color: red;">${item.error}</span>`;
-        } else {
-            // 에러가 없다면 속성과 태그를 정상적으로 표시합니다.
-            let attrContent = '';
-            for (const key in item.attributes) {
-                attrContent += `<li><strong>${key}:</strong> ${item.attributes[key]}</li>`;
-            }
-            let attributesHTML = `<ul>${attrContent}</ul>`;
+        const data = await response.json();
 
-            let tagsContent = '';
-            // item.tags가 존재하는지 확인
-            if (item.tags && item.tags.length > 0) {
-                item.tags.forEach(tag => {
-                    tagsContent += `<span class="tag">#${tag}</span>`;
-                });
-            }
-            let tagsHTML = `<div class="tags">${tagsContent}</div>`;
-            
-            detailsHTML = `
-                <div><strong>속성:</strong> ${attributesHTML}</div>
-                <div><strong>태그:</strong> ${tagsHTML}</div>
-            `;
+        if (!response.ok) {
+            throw new Error(data.error || '알 수 없는 오류가 발생했습니다.');
         }
 
-        const itemHTML = `
-            <div class="result-item">
-                <a href="${item.link}" target="_blank">
-                    <img src="${item.image}" alt="${cleanTitle}">
-                </a>
-                <div class="info">
-                    <span class="title">${cleanTitle}</span>
-                    <span class="mall">${item.mallName}</span>
-                    <span class="price">${Number(item.lprice).toLocaleString()}원</span>
-                    <hr>
-                    ${detailsHTML}
-                </div>
-            </div>
-        `;
-        resultsContainer.innerHTML += itemHTML;
-    });
-}
+        displayResult(data.result);
+
+    } catch (error) {
+        resultContent.textContent = `오류 발생: ${error.message}`;
+    } finally {
+        showLoader(false);
+    }
+});

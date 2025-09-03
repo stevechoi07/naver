@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네이버 순위 탐정 조종기</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🕵️‍♂️ 네이버 순위 탐정 조종기</h1>
+        <p>Netlify 서버리스 함수를 테스트하기 위한 웹 앱입니다.</p>
+
+        <div class="card">
+            <h2>📊 시장 분석 모드</h2>
+            <p>특정 키워드로 어떤 상품이 잘 나가는지 상위 상품들을 염탐합니다.</p>
+            <input type="text" id="market-keyword" placeholder="분석할 키워드를 입력하세요 (예: 게이밍 의자)">
+            <button id="market-analysis-btn">시장 분석 시작</button>
+        </div>
+
+        <div class="card">
+            <h2>🏆 순위 확인 모드</h2>
+            <p>내 상품이 특정 키워드로 몇 위에 있는지 정확하게 찾아냅니다.</p>
+            <input type="text" id="rank-keyword" placeholder="순위를 찾을 키워드 (예: 강아지 간식)">
+            <input type="text" id="product-name" placeholder="내 상품명 (일부만 포함돼도 OK)">
+            <input type="text" id="store-name" placeholder="내 스토어명 (선택 사항)">
+            <button id="rank-check-btn">내 순위 추적!</button>
+        </div>
+
+        <div id="loader" class="loader-container">
+            <div class="loader"></div>
+            <p>탐정님이 열심히 수사 중입니다... 잠시만 기다려주세요!</p>
+        </div>
+
+        <div id="results-container">
+            <h2>결과 보고서</h2>
+            <div id="result-content">
+                <p>이곳에 분석 및 순위 확인 결과가 표시됩니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
