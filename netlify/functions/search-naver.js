@@ -21,8 +21,9 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     query: keyword,
                     display: display,
                     start: start,
-                    sort: 'sim' // v8.5 FIX: 'rel' -> 'sim' (쇼핑 API 관련도순)
+                    sort: 'sim'
                 },
+                timeout: 5000 // 5초 타임아웃 설정
             });
 
             if (response.data && response.data.items) {
@@ -38,7 +39,7 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                 }
             } else {
                  console.log(`[Rank Check WARN] Keyword: "${keyword}", No items found at start: ${start}`);
-                 break; // No more items, stop searching
+                 break;
             }
         } catch (e) {
             console.error(`[Rank Check ERROR] Keyword: "${keyword}", Start: ${start}, Status: ${e.response?.status}, Message: ${e.message}`);
@@ -51,14 +52,27 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
     return rank;
 }
 
-exports.handler = async (event) => {
+// 배열을 주어진 크기의 청크(분대)로 나누는 함수
+function chunkArray(array, size) {
+    const chunkedArr = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunkedArr.push(array.slice(i, i + size));
+    }
+    return chunkedArr;
+}
+
+exports.handler = async (event, context) => {
+     // Netlify의 기본 타임아웃은 10초, 유료 플랜은 더 길 수 있음.
+     // 함수 실행 시간을 추적하여 타임아웃에 근접하면 중간 결과를 반환.
+    const TIME_LIMIT = 28000; // 30초 타임아웃에 대비해 28초로 제한
+    const startTime = Date.now();
+
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
     }
 
     const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } = process.env;
     if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
-        console.error("Server configuration error: Naver API credentials not set.");
         return { statusCode: 500, body: JSON.stringify({ error: '네이버 API 키가 서버에 설정되지 않았습니다.' }) };
     }
 
@@ -71,11 +85,25 @@ exports.handler = async (event) => {
                 return { statusCode: 400, body: JSON.stringify({ error: '키워드와 상품명은 필수입니다.' }) };
             }
             
-            const rankingResults = [];
-            for (const keywordData of keywords) {
-                const rank = await findRankForKeyword(keywordData.keyword, productName, storeName, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET);
-                rankingResults.push({ ...keywordData, rank });
-                await new Promise(resolve => setTimeout(resolve, 100)); 
+            // 5개씩 분대로 나누어 병렬 처리
+            const keywordChunks = chunkArray(keywords, 5);
+            let rankingResults = [];
+
+            for (const chunk of keywordChunks) {
+                 if (Date.now() - startTime > TIME_LIMIT) {
+                    console.warn('[TIMEOUT IMMINENT] Returning partial results.');
+                    // 시간이 부족하면, 나머지 키워드는 '시간 초과'로 처리
+                    const remainingKeywords = keywords.slice(rankingResults.length);
+                    remainingKeywords.forEach(kw => rankingResults.push({ ...kw, rank: '시간 초과' }));
+                    break; 
+                }
+
+                const promises = chunk.map(keywordData =>
+                    findRankForKeyword(keywordData.keyword, productName, storeName, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)
+                        .then(rank => ({ ...keywordData, rank }))
+                );
+                const chunkResults = await Promise.all(promises);
+                rankingResults = [...rankingResults, ...chunkResults];
             }
             
             return { statusCode: 200, body: JSON.stringify({ results: rankingResults }) };
@@ -93,7 +121,7 @@ exports.handler = async (event) => {
                 params: { 
                     query: keyword, 
                     display: 40, 
-                    sort: 'sim' // v8.5 FIX: 'rel' -> 'sim' (쇼핑 API 관련도순)
+                    sort: 'sim'
                 },
             });
             
