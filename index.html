@@ -492,13 +492,12 @@
             if (rankText.includes('위') && !rankText.includes('초과')) {
                 rankHtml = `<td class="p-2 text-blue-600 font-bold">${rankText}</td>`;
             } else if (rankText === '1000위 초과' && kw.debugData && kw.debugData.length > 0) {
-                const tooltipText = formatDebugDataForTooltip(kw.debugData);
-                rankHtml = `
-                    <td class="p-2 text-gray-500">
-                        ${rankText} 
-                        <span title="${tooltipText}" class="cursor-help font-bold text-blue-500">ℹ️</span>
-                    </td>`;
-            } else {
+				const tooltipText = formatDebugDataForTooltip(kw.debugData);
+				rankHtml = `
+					<td class="p-2 text-gray-500 text-center">
+						<span title="${tooltipText}" class="cursor-help font-bold text-blue-500 text-lg">ℹ️</span>
+					</td>`;
+			} else {
                  rankHtml = `<td class="p-2 text-red-500">${rankText}</td>`;
             }
 
