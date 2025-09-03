@@ -21,6 +21,7 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     query: keyword,
                     display: display,
                     start: start,
+                    sort: 'rel' // 정확도순으로 검색
                 },
             });
 
@@ -28,7 +29,7 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                 for (let i = 0; i < response.data.items.length; i++) {
                     const item = response.data.items[i];
                     // HTML 태그 제거 및 상품명 비교
-                    const itemTitle = item.title.replace(/<[^>]*>?/gm, '');
+                    const itemTitle = item.title.replace(/<[^>]*>?/gm, '').trim();
                     
                     if (itemTitle.includes(productName) && (!storeName || item.mallName.includes(storeName))) {
                         rank = `${start + i}위`;
@@ -37,12 +38,10 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     }
                 }
             } else {
-                // API 결과가 없으면 더 이상 탐색할 필요 없음
                 break;
             }
         } catch (e) {
             console.error(`Error fetching API for keyword "${keyword}" at start ${start}:`, e.message);
-            // API 에러 발생 시 해당 키워드는 N/A 처리하고 계속 진행
             rank = 'API 오류';
             break;
         }
@@ -64,7 +63,7 @@ exports.handler = async (event) => {
     try {
         const body = JSON.parse(event.body);
         
-        // 모드 분기: '랭킹 추적' 모드와 '시장 분석' 모드
+        // mode 파라미터로 '랭킹 추적'과 '시장 분석'을 구분
         if (body.mode === 'rankCheck') {
             const { keywords, productName, storeName } = body;
             if (!keywords || !productName) {
@@ -79,7 +78,7 @@ exports.handler = async (event) => {
             const results = await Promise.all(rankingPromises);
             return { statusCode: 200, body: JSON.stringify({ results }) };
 
-        } else { // 기본 '시장 분석' 모드
+        } else { // 기본값은 '시장 분석' 모드
             const { keyword } = body;
             if (!keyword) {
                 return { statusCode: 400, body: JSON.stringify({ error: '키워드는 필수입니다.' }) };
@@ -104,7 +103,7 @@ exports.handler = async (event) => {
         }
 
     } catch (error) {
-        console.error('Function Error:', error);
+        console.error('Function Error:', error.message);
         return { statusCode: 500, body: JSON.stringify({ error: '서버 내부 오류가 발생했습니다.' }) };
     }
 };

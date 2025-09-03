@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v8.2 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v8.3 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -49,8 +49,8 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v8.2</h1>
-            <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (localStorage)</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v8.3</h1>
+            <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (API 통합)</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
@@ -164,7 +164,7 @@
         const storeNameInput = document.getElementById('store-name-input');
         const rankCheckStatus = document.getElementById('rank-check-status');
         const registeredKeywordsContainer = document.getElementById('registered-keywords-container');
-
+        
         const searchButton = document.getElementById('search-button');
         const keywordInput = document.getElementById('keyword-input');
         const searchResultsContainer = document.getElementById('search-results');
@@ -367,7 +367,6 @@
             }
 
             const keywords = keywordsRaw.split('\n').map(line => {
-                // Split by comma or one or more whitespace characters (like tab or space)
                 const parts = line.split(/[\s,]+/);
                 return {
                     keyword: parts[0]?.trim(),
@@ -384,12 +383,19 @@
             setLoadingState(true, 'rank');
 
             try {
-                const response = await fetch('/.netlify/functions/check-ranking', {
+                const response = await fetch('/.netlify/functions/search-naver', {
                     method: 'POST',
-                    body: JSON.stringify({ keywords, productName, storeName })
+                    body: JSON.stringify({ 
+                        mode: 'rankCheck',
+                        keywords, 
+                        productName, 
+                        storeName 
+                    })
                 });
-                if (!response.ok) throw new Error('랭킹 확인 중 서버 오류 발생');
                 const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || '랭킹 확인 중 서버 오류 발생');
+                }
                 registeredKeywords = data.results;
                 renderRegisteredKeywords(registeredKeywords);
                 showMessage(rankCheckStatus, '랭킹 확인 완료!', 'success');
@@ -405,8 +411,8 @@
             
             const sortedKeywords = [...keywords].sort((a, b) => {
                 if (sortBy === 'rank') {
-                     const rankA = a.rank === 'N/A' ? Infinity : parseInt(a.rank.split('페이지 ')[1].replace('위',''));
-                     const rankB = b.rank === 'N/A' ? Infinity : parseInt(b.rank.split('페이지 ')[1].replace('위',''));
+                     const rankA = a.rank === '1000위 초과' || a.rank === 'API 오류' ? Infinity : parseInt(a.rank.replace('위',''));
+                     const rankB = b.rank === '1000위 초과' || b.rank === 'API 오류' ? Infinity : parseInt(b.rank.replace('위',''));
                      return sortDir === 'asc' ? rankA - rankB : rankB - rankA;
                 }
                 return sortDir === 'asc' ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
@@ -434,7 +440,7 @@
                     <td class="p-2"><input type="checkbox" class="keyword-checkbox" value="${kw.keyword}"></td>
                     <td class="p-2 text-gray-600">${kw.searchVolume.toLocaleString()}</td>
                     <td class="p-2 font-medium">${kw.keyword}</td>
-                    <td class="p-2 ${kw.rank === 'N/A' ? 'text-red-500' : 'text-blue-600 font-bold'}">${kw.rank}</td>
+                    <td class="p-2 ${kw.rank.includes('위') && !kw.rank.includes('초과') ? 'text-blue-600 font-bold' : 'text-red-500'}">${kw.rank}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -547,8 +553,13 @@
             
             const analysisKeywordsForParse = keywordInput.value.trim().split(' ').filter(k => k);
             if(analysisKeywordsForParse.length === 0) {
-                 showMessage(statusMessage, '분석할 키워드가 없습니다. 먼저 시장 조사를 해주세요.', 'error');
-                 return;
+                 const registeredChecked = [...document.querySelectorAll('.keyword-checkbox:checked')].map(cb => cb.value);
+                 if (registeredChecked.length > 0) {
+                     analysisKeywordsForParse.push(...registeredChecked);
+                 } else {
+                    showMessage(statusMessage, '분석할 키워드가 없습니다. 먼저 시장 조사를 해주세요.', 'error');
+                    return;
+                 }
             }
 
 
