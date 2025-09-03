@@ -1,9 +1,8 @@
-<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v9.0 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v9.1 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -36,7 +35,7 @@
         }
 
         .modal-overlay { transition: opacity 0.3s ease; }
-        .heatmap-cell { width: 1.75rem; height: 1.75rem; border-radius: 4px; }
+        .heatmap-cell { width: 2rem; height: 2rem; border-radius: 4px; }
         
         .sortable-header { cursor: pointer; }
         .sortable-header:hover { background-color: #f0f0f0; }
@@ -47,19 +46,21 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-		<div class="container mx-auto p-4 md:p-8" style="max-width: 1440px;">
+		<div class="mx-auto p-4 md:p-8 max-w-7xl">
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v9.0</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v9.1</h1>
             <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (실시간 순차 처리)</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-4">
-            <!-- Leftmost Column: Keyword Input -->
             <div class="md:col-span-3 space-y-2">
                 <div class="bg-white rounded-2xl shadow-xl p-6 space-y-4 h-full">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔑 작전 브리핑실</h2>
                     <div>
-                        <label for="keywords-textarea" class="block text-sm font-medium text-gray-700 mb-1">분석할 키워드 목록</label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="keywords-textarea" class="block text-sm font-medium text-gray-700">분석할 키워드 목록</label>
+                            <button id="clear-keywords-button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors">[목록 지우기]</button>
+                        </div>
                         <textarea id="keywords-textarea" rows="5" class="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="예:&#10;고용량멀티탭, 55400&#10;안전멀티탭 12300&#10;접지멀티탭	8900"></textarea>
                     </div>
                     <div>
@@ -84,7 +85,6 @@
                 </div>
             </div>
 
-            <!-- Middle Column: Market Analysis -->
             <div class="md:col-span-4 space-y-4 mt-8 md:mt-0">
                 <div class="sticky-header rounded-2xl shadow-xl p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
@@ -105,7 +105,6 @@
                 </div>
             </div>
 
-            <!-- Right Column: HTML Analysis -->
             <div class="md:col-span-5 space-y-4 mt-8 md:mt-0">
                  <div class="sticky-header rounded-2xl shadow-lg p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
@@ -145,7 +144,6 @@
         </div>
     </div>
 
-    <!-- Custom Confirm Modal -->
     <div id="custom-confirm-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
             <p id="confirm-modal-message" class="text-lg mb-6">정말로 삭제하시겠습니까?</p>
@@ -156,8 +154,6 @@
         </div>
     </div>
 
-<!-- // v2.0: '순위 탐정' 기능 완벽 연동 및 디버그 데이터 UI 추가 -->
-
 <script>
     // --- DOM Elements ---
     const rankCheckButton = document.getElementById('rank-check-button');
@@ -166,6 +162,8 @@
     const storeNameInput = document.getElementById('store-name-input');
     const rankCheckStatus = document.getElementById('rank-check-status');
     const registeredKeywordsContainer = document.getElementById('registered-keywords-container');
+    // v9.1 변경점: 목록 지우기 버튼 Element 추가
+    const clearKeywordsButton = document.getElementById('clear-keywords-button');
     
     const searchButton = document.getElementById('search-button');
     const keywordInput = document.getElementById('keyword-input');
@@ -198,6 +196,8 @@
     // --- localStorage Logic ---
     const PROJECTS_KEY = 'allAnalyzedProjects_v8_local';
     const LAST_PROJECT_KEY = 'lastSelectedProject_v8_local';
+    // v9.1 변경점: 키워드 저장을 위한 localStorage 키 추가
+    const KEYWORDS_KEY = 'savedRankKeywords_v9_local';
 
     function getAllProjects() {
         const data = localStorage.getItem(PROJECTS_KEY);
@@ -206,6 +206,14 @@
 
     function saveAllProjects(projects) {
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+    }
+
+    // v9.1 변경점: 저장된 키워드를 불러오는 함수 추가
+    function loadSavedKeywords() {
+        const savedKeywords = localStorage.getItem(KEYWORDS_KEY);
+        if (savedKeywords) {
+            keywordsTextarea.value = savedKeywords;
+        }
     }
 
     function getCurrentProjectProducts() {
@@ -330,6 +338,20 @@
     searchButton.addEventListener('click', () => handleSearch(keywordInput.value));
     analyzeButton.addEventListener('click', handleManualAnalysis);
     
+    // v9.1 변경점: 목록 지우기 버튼 이벤트 리스너 추가
+    clearKeywordsButton.addEventListener('click', async () => {
+        if (!keywordsTextarea.value.trim()) {
+            showMessage(rankCheckStatus, '지울 키워드 목록이 없습니다.', 'error');
+            return;
+        }
+        const confirmed = await showCustomConfirm('저장된 키워드 목록을 정말로 삭제하시겠습니까?');
+        if (confirmed) {
+            keywordsTextarea.value = '';
+            localStorage.removeItem(KEYWORDS_KEY);
+            showMessage(rankCheckStatus, '저장된 키워드 목록이 삭제되었습니다.', 'success');
+        }
+    });
+
     clearAnalyzedButton.addEventListener('click', async () => {
          const confirmed = await showCustomConfirm(`'${currentProjectName}' 프로젝트의 모든 분석 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`);
          if (confirmed) {
@@ -367,6 +389,9 @@
             showMessage(rankCheckStatus, '키워드 목록과 상품명을 모두 입력해주세요.', 'error');
             return;
         }
+        
+        // v9.1 변경점: 랭킹 확인 시 키워드 목록을 localStorage에 저장
+        localStorage.setItem(KEYWORDS_KEY, keywordsRaw);
 
         const keywords = keywordsRaw.split('\n').map(line => {
             const parts = line.split(/[\s,]+/);
@@ -387,7 +412,6 @@
 
         for (let i = 0; i < keywords.length; i++) {
             const keywordData = keywords[i];
-            // v2.0 변경점: 테이블의 특정 행에 대기 상태를 먼저 표시합니다.
             registeredKeywords[i].rank = '확인 중...';
             renderRegisteredKeywords(registeredKeywords);
             showMessage(rankCheckStatus, `키워드 ${i + 1}/${keywords.length} 확인 중: "${keywordData.keyword}"`, 'loading');
@@ -395,7 +419,7 @@
             try {
                 const response = await fetch('/.netlify/functions/search-naver', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }, // v2.0 변경점: 헤더 추가
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         mode: 'rankCheck',
                         keyword: keywordData, 
@@ -406,11 +430,9 @@
 
                 const data = await response.json();
                 if (!response.ok) {
-                   // 서버에서 보낸 에러 메시지를 우선적으로 사용합니다.
                    throw new Error(data.error || `서버 응답 오류 (${response.status})`);
                 }
 
-                // v2.0 변경점: 백엔드에서 온 결과(debugData 포함)를 그대로 저장합니다.
                 registeredKeywords[i] = data.result;
 
             } catch (error) {
@@ -424,7 +446,6 @@
         setLoadingState(false, 'rank');
     }
 
-    // v2.0 변경점: 디버그 데이터를 툴팁으로 보여주는 헬퍼 함수
     function formatDebugDataForTooltip(debugData) {
         if (!debugData || debugData.length === 0) {
             return '디버그 정보 없음';
@@ -466,7 +487,6 @@
             const tr = document.createElement('tr');
             tr.className = 'border-b border-gray-200';
             
-            // v2.0 변경점: 순위 결과에 따라 다른 스타일과 디버그 정보 툴팁을 추가합니다.
             let rankHtml = '';
             const rankText = kw.rank || 'N/A';
             if (rankText.includes('위') && !rankText.includes('초과')) {
@@ -502,7 +522,6 @@
         });
 
         document.querySelectorAll('.sortable-header').forEach(header => {
-            // 현재 정렬 상태 표시
             if (header.dataset.sort === sortBy) {
                  header.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
             }
@@ -780,6 +799,8 @@
 
     // Initial load from localStorage
     loadProjects();
+    // v9.1 변경점: 페이지 로드 시 저장된 키워드 불러오기
+    loadSavedKeywords();
 </script>    
 
 </body>
