@@ -21,7 +21,7 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     query: keyword,
                     display: display,
                     start: start,
-                    sort: 'rel'
+                    sort: 'sim' // v8.5 FIX: 'rel' -> 'sim' (쇼핑 API 관련도순)
                 },
             });
 
@@ -42,7 +42,6 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
             }
         } catch (e) {
             console.error(`[Rank Check ERROR] Keyword: "${keyword}", Start: ${start}, Status: ${e.response?.status}, Message: ${e.message}`);
-            // API 에러 시, 해당 키워드는 'API 오류'로 처리하고 다음 키워드로 넘어감
             rank = `API ${e.response?.status || '오류'}`;
             break; 
         }
@@ -73,11 +72,9 @@ exports.handler = async (event) => {
             }
             
             const rankingResults = [];
-            // 병렬 처리(Promise.all) 대신 순차 처리(for...of loop)로 변경하여 API 과호출 방지
             for (const keywordData of keywords) {
                 const rank = await findRankForKeyword(keywordData.keyword, productName, storeName, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET);
                 rankingResults.push({ ...keywordData, rank });
-                // 네이버 API의 초당 호출 제한(10회)을 피하기 위한 최소한의 딜레이
                 await new Promise(resolve => setTimeout(resolve, 100)); 
             }
             
@@ -93,7 +90,11 @@ exports.handler = async (event) => {
                     'X-Naver-Client-Id': NAVER_CLIENT_ID,
                     'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
                 },
-                params: { query: keyword, display: 40, sort: 'rel' },
+                params: { 
+                    query: keyword, 
+                    display: 40, 
+                    sort: 'sim' // v8.5 FIX: 'rel' -> 'sim' (쇼핑 API 관련도순)
+                },
             });
             
             const results = response.data.items.map(item => ({

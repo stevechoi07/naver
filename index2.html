@@ -386,6 +386,7 @@
                 // v8.4 FIX: Calling the correct unified endpoint with the correct mode
                 const response = await fetch('/.netlify/functions/search-naver', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         mode: 'rankCheck',
                         keywords, 
@@ -412,8 +413,8 @@
             
             const sortedKeywords = [...keywords].sort((a, b) => {
                 if (sortBy === 'rank') {
-                     const rankA = a.rank === '1000위 초과' || a.rank === 'API 오류' ? Infinity : parseInt(a.rank.replace('위',''));
-                     const rankB = b.rank === '1000위 초과' || b.rank === 'API 오류' ? Infinity : parseInt(b.rank.replace('위',''));
+                     const rankA = a.rank === '1000위 초과' || a.rank.startsWith('API') ? Infinity : parseInt(a.rank.replace('위',''));
+                     const rankB = b.rank === '1000위 초과' || b.rank.startsWith('API') ? Infinity : parseInt(b.rank.replace('위',''));
                      return sortDir === 'asc' ? rankA - rankB : rankB - rankA;
                 }
                 return sortDir === 'asc' ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
@@ -486,6 +487,7 @@
             try {
                 const response = await fetch('/.netlify/functions/search-naver', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ keyword })
                 });
                 const data = await response.json();
@@ -570,6 +572,7 @@
             try {
                 const response = await fetch('/.netlify/functions/parse-product', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ html: htmlContent, keywordsToAnalyze: analysisKeywordsForParse })
                 });
 
