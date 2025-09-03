@@ -1,66 +1,110 @@
-// [v1.1] '네이버 쇼핑 역학조사관' (API 업그레이드)
-// 기존의 불안정한 HTML 스크래핑 방식에서, Netlify 환경변수에 저장된
-// NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 사용하는 공식 API 방식으로 변경!
-// 이제 더 이상 쫓겨날 일 없다!
 const axios = require('axios');
 
-exports.handler = async function (event, context) {
+// API 요청을 위한 기본 설정
+const API_BASE_URL = 'https://openapi.naver.com/v1/search/shop.json';
+
+// 단일 키워드에 대한 순위를 찾는 헬퍼 함수
+async function findRankForKeyword(keyword, productName, storeName, clientId, clientSecret) {
+    let rank = '1000위 초과';
+    let found = false;
+    const display = 100; // API는 한번에 최대 100개까지 호출 가능
+
+    // API는 최대 1000위까지 조회가 가능 (start=1, 101, 201, ..., 901)
+    for (let start = 1; start <= 1000 && !found; start += display) {
+        try {
+            const response = await axios.get(API_BASE_URL, {
+                headers: {
+                    'X-Naver-Client-Id': clientId,
+                    'X-Naver-Client-Secret': clientSecret,
+                },
+                params: {
+                    query: keyword,
+                    display: display,
+                    start: start,
+                },
+            });
+
+            if (response.data && response.data.items) {
+                for (let i = 0; i < response.data.items.length; i++) {
+                    const item = response.data.items[i];
+                    // HTML 태그 제거 및 상품명 비교
+                    const itemTitle = item.title.replace(/<[^>]*>?/gm, '');
+                    
+                    if (itemTitle.includes(productName) && (!storeName || item.mallName.includes(storeName))) {
+                        rank = `${start + i}위`;
+                        found = true;
+                        break;
+                    }
+                }
+            } else {
+                // API 결과가 없으면 더 이상 탐색할 필요 없음
+                break;
+            }
+        } catch (e) {
+            console.error(`Error fetching API for keyword "${keyword}" at start ${start}:`, e.message);
+            // API 에러 발생 시 해당 키워드는 N/A 처리하고 계속 진행
+            rank = 'API 오류';
+            break;
+        }
+    }
+    return rank;
+}
+
+
+exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
+    const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } = process.env;
+    if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
+        return { statusCode: 500, body: JSON.stringify({ error: '네이버 API 키가 서버에 설정되지 않았습니다.' }) };
+    }
+
     try {
-        const { keyword } = JSON.parse(event.body);
-        if (!keyword) {
-            return { statusCode: 400, body: JSON.stringify({ error: '검색할 키워드가 없습니다.' }) };
-        }
-
-        // Netlify에 저장된 환경 변수(API 키)를 가져옵니다.
-        const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
-        const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
-
-        if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
-            return {
-                statusCode: 500,
-                body: JSON.stringify({ error: '네이버 API 인증 정보가 서버에 설정되지 않았습니다. Netlify 환경변수를 확인해주세요.' })
-            };
-        }
-
-        const apiUrl = 'https://openapi.naver.com/v1/search/shop.json';
-
-        const { data } = await axios.get(apiUrl, {
-            headers: {
-                'X-Naver-Client-Id': NAVER_CLIENT_ID,
-                'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
-            },
-            params: {
-                query: keyword,
-                display: 40, // 1페이지에 해당하는 최대 40개의 결과를 가져옵니다.
-                sort: 'sim' // 관련도 순으로 정렬
+        const body = JSON.parse(event.body);
+        
+        // 모드 분기: '랭킹 추적' 모드와 '시장 분석' 모드
+        if (body.mode === 'rankCheck') {
+            const { keywords, productName, storeName } = body;
+            if (!keywords || !productName) {
+                return { statusCode: 400, body: JSON.stringify({ error: '키워드와 상품명은 필수입니다.' }) };
             }
-        });
 
-        // API 응답(data.items)을 프론트엔드가 사용하는 형식으로 변환합니다.
-        const results = data.items.map(item => ({
-            title: item.title.replace(/<[^>]*>?/gm, ''), // 제목에서 HTML 태그 제거
-            link: item.link,
-            imageUrl: item.image,
-            price: parseInt(item.lprice).toLocaleString('ko-KR') // 가격에 콤마 추가
-        }));
+            const rankingPromises = keywords.map(keywordData =>
+                findRankForKeyword(keywordData.keyword, productName, storeName, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)
+                    .then(rank => ({ ...keywordData, rank }))
+            );
+            
+            const results = await Promise.all(rankingPromises);
+            return { statusCode: 200, body: JSON.stringify({ results }) };
 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ results }),
-        };
+        } else { // 기본 '시장 분석' 모드
+            const { keyword } = body;
+            if (!keyword) {
+                return { statusCode: 400, body: JSON.stringify({ error: '키워드는 필수입니다.' }) };
+            }
+
+            const response = await axios.get(API_BASE_URL, {
+                headers: {
+                    'X-Naver-Client-Id': NAVER_CLIENT_ID,
+                    'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+                },
+                params: { query: keyword, display: 40, sort: 'rel' },
+            });
+            
+            const results = response.data.items.map(item => ({
+                title: item.title.replace(/<[^>]*>?/gm, ''),
+                link: item.link,
+                imageUrl: item.image,
+                price: Number(item.lprice).toLocaleString(),
+            }));
+
+            return { statusCode: 200, body: JSON.stringify({ results }) };
+        }
 
     } catch (error) {
-        console.error('Naver API Error:', error.response ? error.response.data : error.message);
-        return {
-            statusCode: error.response ? error.response.status : 500,
-            body: JSON.stringify({
-                error: '네이버 쇼핑 API를 호출하는 중에 에러가 발생했습니다.',
-                details: error.response ? error.response.data : error.message
-            }),
-        };
+        console.error('Function Error:', error);
+        return { statusCode: 500, body: JSON.stringify({ error: '서버 내부 오류가 발생했습니다.' }) };
     }
 };
