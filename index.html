@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v7.0 - 프로젝트 관리 & 보고서 시스템</title>
+    <title>HTML 청진기 v8.0 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -15,7 +15,7 @@
             position: sticky;
             top: 1rem;
             z-index: 10;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -27,7 +27,6 @@
         .analyzed { 
             background-color: #f8f8f8;
             opacity: 0.3;
-            border-left: 4px solid #d1d5db;
         }
         .analyzed .font-semibold, .analyzed .font-bold { color: #6b7280; }
         .analyzed:hover {
@@ -38,30 +37,65 @@
 
         .modal-overlay { transition: opacity 0.3s ease; }
         .heatmap-cell { width: 1.75rem; height: 1.75rem; border-radius: 4px; }
+        
+        .sortable-header { cursor: pointer; }
+        .sortable-header:hover { background-color: #f0f0f0; }
+        .sort-asc::after { content: ' ▲'; font-size: 0.6em; }
+        .sort-desc::after { content: ' ▼'; font-size: 0.6em; }
+
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v7.0</h1>
-            <p class="text-lg text-gray-600 mt-2">'프로젝트 관리 & 보고서 시스템' 에디션</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v8.0</h1>
+            <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (localStorage)</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
-            <!-- Left Column -->
-            <div class="md:col-span-4 space-y-8">
+            <!-- Leftmost Column: Keyword Input -->
+            <div class="md:col-span-3 space-y-4">
+                <div class="bg-white rounded-2xl shadow-xl p-6 space-y-4 h-full">
+                    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔑 작전 브리핑실</h2>
+                    <div>
+                        <label for="keywords-textarea" class="block text-sm font-medium text-gray-700 mb-1">분석할 키워드 목록</label>
+                        <textarea id="keywords-textarea" rows="5" class="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="예:&#10;고용량멀티탭, 55400&#10;안전멀티탭, 12300&#10;접지멀티탭, 8900"></textarea>
+                    </div>
+                    <div>
+                        <label for="product-name-input" class="block text-sm font-medium text-gray-700 mb-1">상품명</label>
+                        <input type="text" id="product-name-input" class="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="내 상품명 입력">
+                    </div>
+                    <div>
+                        <label for="store-name-input" class="block text-sm font-medium text-gray-700 mb-1">스마트스토어명 (선택)</label>
+                        <input type="text" id="store-name-input" class="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="내 스토어명 입력">
+                    </div>
+                    <button id="rank-check-button" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition text-lg">
+                        랭킹 확인
+                    </button>
+                    <div id="rank-check-status" class="text-center p-3 rounded-lg bg-gray-50 hidden"></div>
+                    
+                    <div class="space-y-2 pt-4">
+                         <h3 class="text-xl font-semibold border-b border-gray-200 pb-2">등록 키워드</h3>
+                         <div id="registered-keywords-container" class="space-y-2">
+                            <p class="text-gray-500 text-center text-sm py-4">랭킹 확인 후 결과가 표시됩니다.</p>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: Market Analysis -->
+            <div class="md:col-span-4 space-y-8 mt-8 md:mt-0">
                 <div class="sticky-header rounded-2xl shadow-xl p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
                     <div>
-                        <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">1. 네이버 쇼핑 키워드:</label>
-                        <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" placeholder="예: 고용량 멀티탭">
+                        <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">네이버 쇼핑 키워드:</label>
+                        <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
                     </div>
-                    <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition text-lg">
-                        시장 조사 시작!
+                    <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition text-lg">
+                        선택 키워드 시장 조사!
                     </button>
                     <div id="search-status" class="text-center p-3 rounded-lg bg-white bg-opacity-50 hidden"></div>
-                    <div id="analysis-keywords-display" class="hidden text-sm text-gray-600 p-2 bg-gray-100 rounded-md"></div>
                 </div>
                 <div class="bg-white rounded-2xl shadow-lg p-6">
                     <h3 class="text-xl font-semibold border-b border-gray-200 pb-2 mb-3">분석 결과 (1페이지):</h3>
@@ -71,14 +105,14 @@
                 </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="md:col-span-8 space-y-8 mt-8 md:mt-0">
-                <div class="sticky-header rounded-2xl shadow-lg p-6 space-y-4">
+            <!-- Right Column: HTML Analysis -->
+            <div class="md:col-span-5 space-y-8 mt-8 md:mt-0">
+                 <div class="sticky-header rounded-2xl shadow-lg p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
                     <div>
-                        <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="✨ 초간편 사용 가이드:&#10;1. 검색 & 클릭 → 왼쪽에서 상품을 클릭하여 새 탭으로 여세요.&#10;2. F12 & 복사 → 새 탭에서 F12를 누르고, HTML 전체를 복사하세요.&#10;3. 붙여넣기 & 분석 → 여기에 붙여넣고 '정밀 분석' 버튼을 누르세요."></textarea>
+                        <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="✨ 초간편 사용 가이드:&#10;1. 검색 & 클릭 → 중앙에서 상품을 클릭하여 새 탭으로 여세요.&#10;2. F12 & 복사 → 새 탭에서 F12를 누르고, HTML 전체를 복사하세요.&#10;3. 붙여넣기 & 분석 → 여기에 붙여넣고 '정밀 분석' 버튼을 누르세요."></textarea>
                     </div>
-                    <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition text-lg">
+                    <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition text-lg">
                         정밀 분석 시작!
                     </button>
                     <div id="status-message" class="text-center p-3 rounded-lg bg-white bg-opacity-50 hidden"></div>
@@ -124,20 +158,29 @@
     
     <script>
         // --- DOM Elements ---
+        const rankCheckButton = document.getElementById('rank-check-button');
+        const keywordsTextarea = document.getElementById('keywords-textarea');
+        const productNameInput = document.getElementById('product-name-input');
+        const storeNameInput = document.getElementById('store-name-input');
+        const rankCheckStatus = document.getElementById('rank-check-status');
+        const registeredKeywordsContainer = document.getElementById('registered-keywords-container');
+
         const searchButton = document.getElementById('search-button');
         const keywordInput = document.getElementById('keyword-input');
         const searchResultsContainer = document.getElementById('search-results');
         const searchStatus = document.getElementById('search-status');
-        const analysisKeywordsDisplay = document.getElementById('analysis-keywords-display');
+        
         const analyzeButton = document.getElementById('analyze-button');
         const htmlInput = document.getElementById('html-input');
         const statusMessage = document.getElementById('status-message');
         const analyzedResultsContainer = document.getElementById('analyzed-results-container');
         const clearAnalyzedButton = document.getElementById('clear-analyzed-button');
         const exportCsvButton = document.getElementById('export-csv-button');
+        
         const projectSelector = document.getElementById('project-selector');
         const newProjectNameInput = document.getElementById('new-project-name');
         const createProjectButton = document.getElementById('create-project-button');
+        
         const confirmModal = document.getElementById('custom-confirm-modal');
         const confirmModalMessage = document.getElementById('confirm-modal-message');
         const confirmModalOk = document.getElementById('confirm-modal-ok');
@@ -145,13 +188,14 @@
 
         // --- Global State ---
         let currentSearchResults = [];
+        let registeredKeywords = [];
+        let currentAnalysisKeywords = [];
         let allProjects = {};
         let currentProjectName = '기본 프로젝트';
-        let currentAnalysisKeywords = [];
 
         // --- localStorage Logic ---
-        const PROJECTS_KEY = 'allAnalyzedProjects_v7';
-        const LAST_PROJECT_KEY = 'lastSelectedProject_v7';
+        const PROJECTS_KEY = 'allAnalyzedProjects_v8_local';
+        const LAST_PROJECT_KEY = 'lastSelectedProject_v8_local';
 
         function getAllProjects() {
             const data = localStorage.getItem(PROJECTS_KEY);
@@ -179,7 +223,7 @@
             }
             updateAnalyzedStylesInSearchList(analyzedProductLinks); 
         }
-        
+
         // --- Project Logic ---
         function loadProjects() {
             allProjects = getAllProjects();
@@ -188,6 +232,10 @@
                 currentProjectName = lastProject;
             } else {
                 currentProjectName = Object.keys(allProjects)[0] || '기본 프로젝트';
+                 if (!allProjects[currentProjectName]) {
+                    allProjects[currentProjectName] = [];
+                    saveAllProjects(allProjects);
+                }
             }
             updateProjectSelector();
             renderAnalyzedProducts();
@@ -227,35 +275,34 @@
             renderAnalyzedProducts();
         });
 
-
         // --- UI Logic ---
         const setLoadingState = (isLoading, type = 'all') => {
             if (type === 'search' || type === 'all') {
                 searchButton.disabled = isLoading;
-                searchButton.textContent = isLoading ? '조사 중...' : '시장 조사 시작!';
-                searchButton.classList.toggle('opacity-50', isLoading);
+                searchButton.textContent = isLoading ? '조사 중...' : '선택 키워드 시장 조사!';
             }
             if (type === 'analyze' || type === 'all') {
                 analyzeButton.disabled = isLoading;
                 analyzeButton.textContent = isLoading ? '분석 중...' : '정밀 분석 시작!';
-                analyzeButton.classList.toggle('opacity-50', isLoading);
+            }
+            if (type === 'rank' || type === 'all') {
+                rankCheckButton.disabled = isLoading;
+                rankCheckButton.textContent = isLoading ? '랭킹 확인 중...' : '랭킹 확인';
             }
         };
 
-        function showSearchMessage(message, type) {
-            searchStatus.textContent = message;
-            searchStatus.className = 'text-center p-3 rounded-lg text-sm bg-white bg-opacity-50';
-            searchStatus.classList.remove('hidden');
-            const typeClasses = { loading: 'bg-yellow-100 text-yellow-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
-            if(typeClasses[type]) searchStatus.classList.add(...typeClasses[type].split(' '));
-        }
-        
-        function showAnalyzeMessage(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = 'text-center p-3 rounded-lg text-sm bg-white bg-opacity-50';
-            statusMessage.classList.remove('hidden');
-            const typeClasses = { loading: 'bg-blue-100 text-blue-800', success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800' };
-            if(typeClasses[type]) statusMessage.classList.add(...typeClasses[type].split(' '));
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = 'text-center p-3 rounded-lg text-sm';
+            element.classList.remove('hidden');
+            const typeClasses = { 
+                loading: 'bg-yellow-100 text-yellow-800', 
+                success: 'bg-green-100 text-green-800', 
+                error: 'bg-red-100 text-red-800',
+                analyze_loading: 'bg-blue-100 text-blue-800'
+            };
+            const classes = typeClasses[type] || 'bg-gray-100 text-gray-800';
+            element.classList.add(...classes.split(' '));
         }
         
         const showCustomConfirm = (message) => {
@@ -263,29 +310,22 @@
                 confirmModalMessage.textContent = message;
                 confirmModal.classList.remove('hidden');
                 setTimeout(() => confirmModal.classList.remove('opacity-0'), 10);
-
                 const handleOk = () => { closeModal(); resolve(true); };
                 const handleCancel = () => { closeModal(); resolve(false); };
-                
                 const closeModal = () => {
                     confirmModal.classList.add('opacity-0');
                     setTimeout(() => confirmModal.classList.add('hidden'), 300);
                     confirmModalOk.removeEventListener('click', handleOk);
                     confirmModalCancel.removeEventListener('click', handleCancel);
                 };
-
                 confirmModalOk.addEventListener('click', handleOk);
                 confirmModalCancel.addEventListener('click', handleCancel);
             });
         };
 
-
         // --- Event Handlers ---
-        searchButton.addEventListener('click', handleSearch);
-        keywordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSearch();
-        });
-        
+        rankCheckButton.addEventListener('click', handleRankCheck);
+        searchButton.addEventListener('click', () => handleSearch(keywordInput.value));
         analyzeButton.addEventListener('click', handleManualAnalysis);
         
         clearAnalyzedButton.addEventListener('click', async () => {
@@ -294,7 +334,7 @@
                 allProjects[currentProjectName] = [];
                 saveAllProjects(allProjects);
                 renderAnalyzedProducts();
-                showAnalyzeMessage('현재 프로젝트의 모든 기록이 삭제되었습니다.', 'success');
+                showMessage(statusMessage, '현재 프로젝트의 모든 기록이 삭제되었습니다.', 'success');
              }
         });
         
@@ -308,7 +348,7 @@
                     allProjects[currentProjectName] = getCurrentProjectProducts().filter(p => p.id !== docId);
                     saveAllProjects(allProjects);
                     renderAnalyzedProducts();
-                    showAnalyzeMessage('분석 기록이 삭제되었습니다.', 'success');
+                    showMessage(statusMessage, '분석 기록이 삭제되었습니다.', 'success');
                 }
             }
         });
@@ -316,35 +356,149 @@
         exportCsvButton.addEventListener('click', exportToCSV);
 
         // --- Core Functions ---
-        async function handleSearch() {
-            const keyword = keywordInput.value.trim();
-            if (!keyword) {
-                showSearchMessage('키워드를 입력해주세요.', 'error');
+        async function handleRankCheck() {
+            const keywordsRaw = keywordsTextarea.value.trim();
+            const productName = productNameInput.value.trim();
+            const storeName = storeNameInput.value.trim();
+
+            if (!keywordsRaw || !productName) {
+                showMessage(rankCheckStatus, '키워드 목록과 상품명을 모두 입력해주세요.', 'error');
                 return;
             }
-            
-            currentAnalysisKeywords = keyword.split(' ').filter(k => k);
-            analysisKeywordsDisplay.innerHTML = `<strong>분석 키워드:</strong> ${currentAnalysisKeywords.map(k => `<span class="font-semibold text-indigo-600">${k}</span>`).join(', ')}`;
-            analysisKeywordsDisplay.classList.remove('hidden');
 
-            showSearchMessage(`'${keyword}' 키워드로 시장 조사 중... 🕵️‍♂️`, 'loading');
+            const keywords = keywordsRaw.split('\n').map(line => {
+                const parts = line.split(',');
+                return {
+                    keyword: parts[0]?.trim(),
+                    searchVolume: parseInt(parts[1]?.trim()) || 0
+                };
+            }).filter(k => k.keyword);
+
+            if (keywords.length === 0) {
+                showMessage(rankCheckStatus, '유효한 키워드가 없습니다.', 'error');
+                return;
+            }
+
+            showMessage(rankCheckStatus, `${keywords.length}개 키워드 랭킹 확인 중...`, 'loading');
+            setLoadingState(true, 'rank');
+
+            try {
+                const response = await fetch('/.netlify/functions/check-ranking', {
+                    method: 'POST',
+                    body: JSON.stringify({ keywords, productName, storeName })
+                });
+                if (!response.ok) throw new Error('랭킹 확인 중 서버 오류 발생');
+                const data = await response.json();
+                registeredKeywords = data.results;
+                renderRegisteredKeywords(registeredKeywords);
+                showMessage(rankCheckStatus, '랭킹 확인 완료!', 'success');
+            } catch (error) {
+                showMessage(rankCheckStatus, `랭킹 확인 실패: ${error.message}`, 'error');
+            } finally {
+                setLoadingState(false, 'rank');
+            }
+        }
+
+        function renderRegisteredKeywords(keywords, sortBy = 'searchVolume', sortDir = 'desc') {
+            registeredKeywordsContainer.innerHTML = '';
+            
+            const sortedKeywords = [...keywords].sort((a, b) => {
+                if (sortBy === 'rank') {
+                     const rankA = a.rank === 'N/A' ? Infinity : parseInt(a.rank.split(' ')[1].replace('위',''));
+                     const rankB = b.rank === 'N/A' ? Infinity : parseInt(b.rank.split(' ')[1].replace('위',''));
+                     return sortDir === 'asc' ? rankA - rankB : rankB - rankA;
+                }
+                return sortDir === 'asc' ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
+            });
+
+            const table = document.createElement('table');
+            table.className = 'w-full text-sm text-left';
+            table.innerHTML = `
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-2 w-6"><input type="checkbox" id="check-all-keywords"></th>
+                        <th class="p-2 sortable-header" data-sort="searchVolume">검색량</th>
+                        <th class="p-2">키워드</th>
+                        <th class="p-2 sortable-header" data-sort="rank">순위</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            const tbody = table.querySelector('tbody');
+
+            sortedKeywords.forEach(kw => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-200';
+                tr.innerHTML = `
+                    <td class="p-2"><input type="checkbox" class="keyword-checkbox" value="${kw.keyword}"></td>
+                    <td class="p-2 text-gray-600">${kw.searchVolume.toLocaleString()}</td>
+                    <td class="p-2 font-medium">${kw.keyword}</td>
+                    <td class="p-2 ${kw.rank === 'N/A' ? 'text-red-500' : 'text-blue-600 font-bold'}">${kw.rank}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            registeredKeywordsContainer.appendChild(table);
+
+            document.getElementById('check-all-keywords').addEventListener('change', (e) => {
+                document.querySelectorAll('.keyword-checkbox').forEach(cb => cb.checked = e.target.checked);
+                updateSearchInputFromCheckboxes();
+            });
+            
+            document.querySelectorAll('.keyword-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateSearchInputFromCheckboxes);
+            });
+
+            document.querySelectorAll('.sortable-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const newSortBy = e.target.dataset.sort;
+                    const newSortDir = sortBy === newSortBy && sortDir === 'desc' ? 'asc' : 'desc';
+                    renderRegisteredKeywords(keywords, newSortBy, newSortDir);
+                    // Add visual indicator
+                    document.querySelectorAll('.sortable-header').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+                    e.target.classList.add(newSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+                });
+            });
+        }
+        
+        function updateSearchInputFromCheckboxes() {
+            const checkedKeywords = [...document.querySelectorAll('.keyword-checkbox:checked')].map(cb => cb.value);
+            keywordInput.value = checkedKeywords.join(' ');
+        }
+
+
+        async function handleSearch(keyword) {
+             if (!keyword) {
+                showMessage(searchStatus, '분석할 키워드를 선택 또는 입력해주세요.', 'error');
+                return;
+            }
+            showMessage(searchStatus, `'${keyword}' 키워드로 시장 조사 중... 🕵️‍♂️`, 'loading');
             searchResultsContainer.innerHTML = '';
             setLoadingState(true, 'search');
 
             try {
                 const response = await fetch('/.netlify/functions/search-naver', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ keyword })
                 });
                 const data = await response.json();
                 if (!response.ok || data.error) throw new Error(data.error || '검색 결과를 가져오지 못했습니다.');
                 
                 currentSearchResults = data.results;
-                showSearchMessage(`"${keyword}" 검색 결과 ${data.results.length}건 분석 완료!`, 'success');
+                showMessage(searchStatus, `"${keyword}" 검색 결과 ${data.results.length}건 분석 완료!`, 'success');
                 displaySearchResults(data.results);
+
+                 // Update registered keyword list style
+                const analyzedKeywords = keyword.split(' ').filter(Boolean);
+                document.querySelectorAll('#registered-keywords-container tbody tr').forEach(tr => {
+                    const kw = tr.querySelector('td:nth-child(3)').textContent;
+                    if(analyzedKeywords.includes(kw)) {
+                        tr.classList.add('analyzed');
+                    }
+                });
+
+
             } catch (error) {
-                showSearchMessage(`조사 실패: ${error.message}`, 'error');
+                showMessage(searchStatus, `조사 실패: ${error.message}`, 'error');
             } finally {
                 setLoadingState(false, 'search');
             }
@@ -386,18 +540,24 @@
         async function handleManualAnalysis() {
             const htmlContent = htmlInput.value;
             if (!htmlContent.trim()) {
-                showAnalyzeMessage('HTML 코드가 없습니다. 코드를 직접 붙여넣어주세요.', 'error');
+                showMessage(statusMessage, 'HTML 코드가 없습니다. 코드를 직접 붙여넣어주세요.', 'error');
                 return;
             }
             
-            showAnalyzeMessage('정밀 분석 중... 🩺', 'loading');
+            const analysisKeywordsForParse = keywordInput.value.trim().split(' ').filter(k => k);
+            if(analysisKeywordsForParse.length === 0) {
+                 showMessage(statusMessage, '분석할 키워드가 없습니다. 먼저 시장 조사를 해주세요.', 'error');
+                 return;
+            }
+
+
+            showMessage(statusMessage, '정밀 분석 중... 🩺', 'analyze_loading');
             setLoadingState(true, 'analyze');
             
             try {
                 const response = await fetch('/.netlify/functions/parse-product', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html: htmlContent, keywordsToAnalyze: currentAnalysisKeywords })
+                    body: JSON.stringify({ html: htmlContent, keywordsToAnalyze: analysisKeywordsForParse })
                 });
 
                 if (!response.ok) {
@@ -419,7 +579,7 @@
                 
                 const currentProducts = getCurrentProjectProducts();
                 if (currentProducts.some(p => p.link === newProduct.link && newProduct.link.startsWith('http'))) {
-                     showAnalyzeMessage('현재 프로젝트에 이미 분석된 상품입니다.', 'error');
+                     showMessage(statusMessage, '현재 프로젝트에 이미 분석된 상품입니다.', 'error');
                      setLoadingState(false, 'analyze');
                      return;
                 }
@@ -428,10 +588,10 @@
                 saveAllProjects(allProjects);
                 renderAnalyzedProducts();
                 
-                showAnalyzeMessage('분석 완료 및 저장 성공!', 'success');
+                showMessage(statusMessage, '분석 완료 및 저장 성공!', 'success');
                 htmlInput.value = ''; 
             } catch (error) {
-                showAnalyzeMessage(`분석 실패: ${error.message}`, 'error');
+                showMessage(statusMessage, `분석 실패: ${error.message}`, 'error');
             } finally {
                 setLoadingState(false, 'analyze');
             }
@@ -521,7 +681,7 @@
                 return;
             }
 
-            const headers = ['순위', '상품명', '속성', '태그'];
+            const headers = ['순위', '상품명', '가격', '속성', '태그'];
             const allKeywords = [...new Set(products.flatMap(p => Object.keys(p.keywordAnalysis || {})))];
             allKeywords.forEach(k => {
                 headers.push(`${k}-제목`, `${k}-속성`, `${k}-태그`);
@@ -533,6 +693,7 @@
                 const row = [
                     `"${p.rank}"`,
                     `"${p.productName.replace(/"/g, '""')}"`,
+                    `"${p.price}"`,
                     `"${p.attributes.map(a => a.value).join(', ').replace(/"/g, '""')}"`,
                     `"${p.tags.join(', ').replace(/"/g, '""')}"`
                 ];
