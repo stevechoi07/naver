@@ -1,15 +1,15 @@
 const axios = require('axios');
 
-// API 요청을 위한 기본 설정
 const API_BASE_URL = 'https://openapi.naver.com/v1/search/shop.json';
 
-// 단일 키워드에 대한 순위를 찾는 헬퍼 함수
+// 단일 키워드 순위 확인 함수 (에러 핸들링 강화)
 async function findRankForKeyword(keyword, productName, storeName, clientId, clientSecret) {
     let rank = '1000위 초과';
     let found = false;
-    const display = 100; // API는 한번에 최대 100개까지 호출 가능
+    const display = 100;
 
-    // API는 최대 1000위까지 조회가 가능 (start=1, 101, 201, ..., 901)
+    console.log(`[Rank Check START] Keyword: "${keyword}"`);
+
     for (let start = 1; start <= 1000 && !found; start += display) {
         try {
             const response = await axios.get(API_BASE_URL, {
@@ -21,14 +21,13 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     query: keyword,
                     display: display,
                     start: start,
-                    sort: 'rel' // 정확도순으로 검색
+                    sort: 'rel'
                 },
             });
 
             if (response.data && response.data.items) {
                 for (let i = 0; i < response.data.items.length; i++) {
                     const item = response.data.items[i];
-                    // HTML 태그 제거 및 상품명 비교
                     const itemTitle = item.title.replace(/<[^>]*>?/gm, '').trim();
                     
                     if (itemTitle.includes(productName) && (!storeName || item.mallName.includes(storeName))) {
@@ -38,52 +37,57 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     }
                 }
             } else {
-                break;
+                 console.log(`[Rank Check WARN] Keyword: "${keyword}", No items found at start: ${start}`);
+                 break; // No more items, stop searching
             }
         } catch (e) {
-            console.error(`Error fetching API for keyword "${keyword}" at start ${start}:`, e.message);
-            rank = 'API 오류';
-            break;
+            console.error(`[Rank Check ERROR] Keyword: "${keyword}", Start: ${start}, Status: ${e.response?.status}, Message: ${e.message}`);
+            // API 에러 시, 해당 키워드는 'API 오류'로 처리하고 다음 키워드로 넘어감
+            rank = `API ${e.response?.status || '오류'}`;
+            break; 
         }
     }
+    
+    console.log(`[Rank Check END] Keyword: "${keyword}", Result: ${rank}`);
     return rank;
 }
 
-
 exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: 'Method Not Allowed' };
+        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
     }
 
     const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } = process.env;
     if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
+        console.error("Server configuration error: Naver API credentials not set.");
         return { statusCode: 500, body: JSON.stringify({ error: '네이버 API 키가 서버에 설정되지 않았습니다.' }) };
     }
 
     try {
         const body = JSON.parse(event.body);
         
-        // mode 파라미터로 '랭킹 추적'과 '시장 분석'을 구분
         if (body.mode === 'rankCheck') {
             const { keywords, productName, storeName } = body;
             if (!keywords || !productName) {
                 return { statusCode: 400, body: JSON.stringify({ error: '키워드와 상품명은 필수입니다.' }) };
             }
-
-            const rankingPromises = keywords.map(keywordData =>
-                findRankForKeyword(keywordData.keyword, productName, storeName, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)
-                    .then(rank => ({ ...keywordData, rank }))
-            );
             
-            const results = await Promise.all(rankingPromises);
-            return { statusCode: 200, body: JSON.stringify({ results }) };
+            const rankingResults = [];
+            // 병렬 처리(Promise.all) 대신 순차 처리(for...of loop)로 변경하여 API 과호출 방지
+            for (const keywordData of keywords) {
+                const rank = await findRankForKeyword(keywordData.keyword, productName, storeName, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET);
+                rankingResults.push({ ...keywordData, rank });
+                // 네이버 API의 초당 호출 제한(10회)을 피하기 위한 최소한의 딜레이
+                await new Promise(resolve => setTimeout(resolve, 100)); 
+            }
+            
+            return { statusCode: 200, body: JSON.stringify({ results: rankingResults }) };
 
-        } else { // 기본값은 '시장 분석' 모드
+        } else { // 기본 '시장 분석' 모드
             const { keyword } = body;
-            if (!keyword) {
+             if (!keyword) {
                 return { statusCode: 400, body: JSON.stringify({ error: '키워드는 필수입니다.' }) };
             }
-
             const response = await axios.get(API_BASE_URL, {
                 headers: {
                     'X-Naver-Client-Id': NAVER_CLIENT_ID,
@@ -98,12 +102,11 @@ exports.handler = async (event) => {
                 imageUrl: item.image,
                 price: Number(item.lprice).toLocaleString(),
             }));
-
             return { statusCode: 200, body: JSON.stringify({ results }) };
         }
 
     } catch (error) {
-        console.error('Function Error:', error.message);
-        return { statusCode: 500, body: JSON.stringify({ error: '서버 내부 오류가 발생했습니다.' }) };
+        console.error('[Function CRASH]', error);
+        return { statusCode: 500, body: JSON.stringify({ error: '서버 내부 오류가 발생했습니다.', details: error.toString() }) };
     }
 };
