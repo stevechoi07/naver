@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v8.4 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v8.7 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -49,8 +49,8 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v8.4</h1>
-            <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (API 통합)</p>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v8.7</h1>
+            <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (실시간 순차 처리)</p>
         </header>
 
         <div class="md:grid md:grid-cols-12 md:gap-8">
@@ -379,33 +379,42 @@
                 return;
             }
 
-            showMessage(rankCheckStatus, `${keywords.length}개 키워드 랭킹 확인 중...`, 'loading');
             setLoadingState(true, 'rank');
+            registeredKeywords = keywords.map(kw => ({...kw, rank: 'N/A'})); // Initialize with N/A
+            renderRegisteredKeywords(registeredKeywords);
 
-            try {
-                // v8.4 FIX: Calling the correct unified endpoint with the correct mode
-                const response = await fetch('/.netlify/functions/search-naver', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        mode: 'rankCheck',
-                        keywords, 
-                        productName, 
-                        storeName 
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || '랭킹 확인 중 서버 오류 발생');
+            let completedCount = 0;
+            for (let i = 0; i < keywords.length; i++) {
+                const keywordData = keywords[i];
+                showMessage(rankCheckStatus, `키워드 ${i + 1}/${keywords.length} 확인 중: "${keywordData.keyword}"`, 'loading');
+                try {
+                    const response = await fetch('/.netlify/functions/search-naver', {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            mode: 'rankCheck',
+                            keyword: keywordData, 
+                            productName, 
+                            storeName 
+                        })
+                    });
+                    if (!response.ok) {
+                       throw new Error(`서버 응답 오류 (${response.status})`);
+                    }
+                    const data = await response.json();
+                     if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    registeredKeywords[i] = data.result;
+                } catch (error) {
+                    console.error(`Error checking rank for ${keywordData.keyword}:`, error);
+                    registeredKeywords[i].rank = '확인 실패';
                 }
-                registeredKeywords = data.results;
+                completedCount++;
                 renderRegisteredKeywords(registeredKeywords);
-                showMessage(rankCheckStatus, '랭킹 확인 완료!', 'success');
-            } catch (error) {
-                showMessage(rankCheckStatus, `랭킹 확인 실패: ${error.message}`, 'error');
-            } finally {
-                setLoadingState(false, 'rank');
             }
+            
+            showMessage(rankCheckStatus, `${completedCount}개 키워드 랭킹 확인 완료!`, 'success');
+            setLoadingState(false, 'rank');
         }
 
         function renderRegisteredKeywords(keywords, sortBy = 'searchVolume', sortDir = 'desc') {
@@ -413,8 +422,8 @@
             
             const sortedKeywords = [...keywords].sort((a, b) => {
                 if (sortBy === 'rank') {
-                     const rankA = a.rank === '1000위 초과' || a.rank.startsWith('API') ? Infinity : parseInt(a.rank.replace('위',''));
-                     const rankB = b.rank === '1000위 초과' || b.rank.startsWith('API') ? Infinity : parseInt(b.rank.replace('위',''));
+                     const rankA = a.rank.startsWith('API') || a.rank.startsWith('확인') || a.rank === 'N/A' ? Infinity : parseInt(a.rank.replace('위',''));
+                     const rankB = b.rank.startsWith('API') || b.rank.startsWith('확인') || b.rank === 'N/A' ? Infinity : parseInt(b.rank.replace('위',''));
                      return sortDir === 'asc' ? rankA - rankB : rankB - rankA;
                 }
                 return sortDir === 'asc' ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];

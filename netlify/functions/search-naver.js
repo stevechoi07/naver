@@ -21,9 +21,9 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                     query: keyword,
                     display: display,
                     start: start,
-                    sort: 'sim'
+                    sort: 'sim' 
                 },
-                timeout: 5000 // 5초 타임아웃 설정
+                timeout: 5000 
             });
 
             if (response.data && response.data.items) {
@@ -41,6 +41,7 @@ async function findRankForKeyword(keyword, productName, storeName, clientId, cli
                  console.log(`[Rank Check WARN] Keyword: "${keyword}", No items found at start: ${start}`);
                  break;
             }
+             await new Promise(resolve => setTimeout(resolve, 100));
         } catch (e) {
             console.error(`[Rank Check ERROR] Keyword: "${keyword}", Start: ${start}, Status: ${e.response?.status}, Message: ${e.message}`);
             rank = `API ${e.response?.status || '오류'}`;
@@ -67,7 +68,6 @@ exports.handler = async (event) => {
     try {
         const body = JSON.parse(event.body);
         
-        // mode 파라미터로 '랭킹 추적'과 '시장 분석'을 구분
         if (body.mode === 'rankCheck') {
             const { keyword, productName, storeName } = body;
             if (!keyword || !productName) {
@@ -106,6 +106,6 @@ exports.handler = async (event) => {
 
     } catch (error) {
         console.error('[Function CRASH]', error);
-        return { statusCode: 500, body: JSON.stringify({ error: '서버 내부 오류가 발생했습니다.', details: error.toString() }) };
+        return { statusCode: 500, body: JSON.stringify({ error: '서버 내부 오류가 발생했습니다.', details: error.message }) };
     }
 };
