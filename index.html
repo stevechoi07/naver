@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v14.1 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v14.2 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -51,7 +51,7 @@
             🚀 순위추적기
         </a>
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v14.1</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v14.2</h1>
             <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (실시간 순차 처리)</p>
         </header>
 
@@ -93,9 +93,10 @@
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">📈 키워드 시장 분석실</h2>
                     <div>
                         <label for="keyword-input" class="block text-sm font-medium text-gray-700 mb-2">네이버 쇼핑 키워드:</label>
-                        <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg bg-white" placeholder="각 단어별 분리하면 정밀분석 가능 (예: 안전멀티탭 → 안전 멀티탭)">
+                        <input type="text" id="keyword-input" class="w-full p-3 border border-gray-300 rounded-lg bg-white">
+                        <p class="text-xs text-gray-500 mt-2 text-center">각 단어별 분리하면 정밀분석 가능 (예: 안전멀티탭 → 안전 멀티탭)</p>
                     </div>
-                    <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition text-lg">
+                    <button id="search-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition text-lg mt-2">
                         선택 키워드 시장 조사!
                     </button>
                     <div id="search-status" class="text-center p-3 rounded-lg bg-white bg-opacity-50 hidden"></div>
@@ -806,7 +807,7 @@
         resultCard.innerHTML = `
             <button data-doc-id="${id}" data-product-name="${productName}" class="delete-btn absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors" title="이 분석 기록 삭제">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2_0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
             </button>
             <div class="grid grid-cols-12 gap-4 pr-6">
