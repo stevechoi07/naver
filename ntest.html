@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v2.1</title>
+    <title>네이버 순위 탐정 v2.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v2.1 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v2.2 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -160,64 +160,64 @@
 </head>
 <body>
     <div class="main-container">
-        <h1>🕵️‍♂️ Rank Tracker <span>v2.1</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v2.2</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
-                    <h2>📁 Projects</h2>
-                    <p>Select, create, or manage your tracking projects.</p>
+                    <h2>📁 프로젝트</h2>
+                    <p>추적할 프로젝트를 선택하거나 관리하세요.</p>
                     <select id="project-selector"></select>
                     <div class="button-group" style="margin-top:10px;">
-                        <button id="new-project-btn" class="primary">➕ New</button>
-                        <button id="edit-project-btn">✏️ Edit</button>
-                        <button id="delete-project-btn" style="background-color: var(--danger-color);">🗑️ Delete</button>
+                        <button id="new-project-btn" class="primary">➕ 새로 만들기</button>
+                        <button id="edit-project-btn">✏️ 수정</button>
+                        <button id="delete-project-btn" style="background-color: var(--danger-color);">🗑️ 삭제</button>
                     </div>
                 </div>
 
                 <div class="card">
-                    <button id="rank-check-btn">🚀 Start Tracking Project Ranks!</button>
+                    <button id="rank-check-btn">🚀 START</button>
                 </div>
 
                 <div class="card">
-                    <h2>📝 Project Info</h2>
-                    <label for="my-product-name">My Product</label>
-                    <input type="text" id="my-product-name" placeholder="Product Name">
-                    <label for="store-name">My Store (Optional)</label>
-                    <input type="text" id="store-name" placeholder="Store Name">
-                    <label for="competitors">Competitors (Product :: Store)</label>
-                    <textarea id="competitors" rows="3" placeholder="Competitor Product 1 :: Store 1
-Competitor Product 2"></textarea>
-                    <label for="rank-keywords">Keywords (One per line)</label>
-                    <textarea id="rank-keywords" rows="5" placeholder="Keyword 1
-Keyword 2"></textarea>
+                    <h2>📝 프로젝트 정보</h2>
+                    <label for="my-product-name">내 상품</label>
+                    <input type="text" id="my-product-name" placeholder="상품명">
+                    <label for="store-name">내 스토어 (선택)</label>
+                    <input type="text" id="store-name" placeholder="스토어명">
+                    <label for="competitors">경쟁사 (상품명 :: 스토어명)</label>
+                    <textarea id="competitors" rows="3" placeholder="경쟁사 상품 1 :: 스토어 1
+경쟁사 상품 2"></textarea>
+                    <label for="rank-keywords">키워드 (한 줄에 하나씩)</label>
+                    <textarea id="rank-keywords" rows="5" placeholder="키워드 1
+키워드 2"></textarea>
                      <p style="font-size: 0.8rem; text-align: right; margin-bottom: 0;">
-                        <a href="#" id="save-changes-link">Save Changes</a>
+                        <a href="#" id="save-changes-link">변경사항 저장</a>
                     </p>
                 </div>
                 
                 <div class="card">
-                    <h2>🔑 API Keys</h2>
-                    <p>Your keys are stored securely in this browser.</p>
-                    <input type="password" id="naver-client-id" placeholder="Naver Client ID">
-                    <input type="password" id="naver-client-secret" placeholder="Naver Client Secret">
-                    <button id="save-api-key-btn">Save API Keys</button>
+                    <h2>🔑 API 키</h2>
+                    <p>API 키는 현재 브라우저에만 안전하게 저장됩니다.</p>
+                    <input type="password" id="naver-client-id" placeholder="네이버 Client ID">
+                    <input type="password" id="naver-client-secret" placeholder="네이버 Client Secret">
+                    <button id="save-api-key-btn">API 키 저장</button>
                 </div>
             </aside>
 
             <main class="content-area">
                 <div class="card">
                     <div class="dashboard-header">
-                        <h2>📈 Rank Dashboard</h2>
+                        <h2>📈 순위 대시보드</h2>
                         <select id="keyword-chart-filter"></select>
                     </div>
-                    <p id="dashboard-subtitle">Select a project to see the rank chart.</p>
+                    <p id="dashboard-subtitle">프로젝트를 선택하면 순위 차트가 표시됩니다.</p>
                     <canvas id="rank-chart"></canvas>
                 </div>
 
                 <div id="results-container" class="card">
-                    <h2>📊 Result Report</h2>
+                    <h2>📊 결과 보고서</h2>
                     <div id="result-content">
-                        <p>Rank tracking results will be displayed here.</p>
+                        <p>순위 추적 결과가 여기에 표시됩니다.</p>
                     </div>
                 </div>
             </main>
@@ -227,29 +227,29 @@ Keyword 2"></textarea>
     <div id="loader" class="loader-container">
         <div class="loader-content">
             <div class="loader-spinner"></div>
-            <p>The detective is on the case...</p>
+            <p>탐정님이 수사 중입니다...</p>
             <div class="progress-bar-container">
                 <div id="progress-bar" class="progress-bar"></div>
             </div>
-            <p id="progress-text" class="progress-text">Initializing...</p>
+            <p id="progress-text" class="progress-text">초기화 중...</p>
         </div>
     </div>
 
     <div id="project-modal" class="modal-overlay">
         <div class="modal-content">
-            <h2 id="modal-title">Create New Project</h2>
-            <input type="text" id="modal-project-name" placeholder="Project Name (e.g., Summer Collection)">
-            <label for="modal-my-product-name">My Product</label>
-            <input type="text" id="modal-my-product-name" placeholder="Product Name">
-            <label for="modal-store-name">My Store (Optional)</label>
-            <input type="text" id="modal-store-name" placeholder="Store Name">
-            <label for="modal-competitors">Competitors (Product :: Store)</label>
-            <textarea id="modal-competitors" rows="3" placeholder="Competitor 1 :: Store 1"></textarea>
-            <label for="modal-keywords">Keywords (One per line)</label>
+            <h2 id="modal-title">새 프로젝트 만들기</h2>
+            <input type="text" id="modal-project-name" placeholder="프로젝트 이름 (예: 여름 신상품)">
+            <label for="modal-my-product-name">내 상품</label>
+            <input type="text" id="modal-my-product-name" placeholder="상품명">
+            <label for="modal-store-name">내 스토어 (선택)</label>
+            <input type="text" id="modal-store-name" placeholder="스토어명">
+            <label for="modal-competitors">경쟁사 (상품명 :: 스토어명)</label>
+            <textarea id="modal-competitors" rows="3" placeholder="경쟁사 1 :: 스토어 1"></textarea>
+            <label for="modal-keywords">키워드 (한 줄에 하나씩)</label>
             <textarea id="modal-keywords" rows="5"></textarea>
             <div class="button-group">
-                <button id="modal-cancel-btn">Cancel</button>
-                <button id="modal-save-btn" class="primary">Save</button>
+                <button id="modal-cancel-btn">취소</button>
+                <button id="modal-save-btn" class="primary">저장</button>
             </div>
         </div>
     </div>
@@ -327,7 +327,7 @@ Keyword 2"></textarea>
             function renderProjectSelector() {
                 projectSelector.innerHTML = '';
                 if (projects.length === 0) {
-                    projectSelector.innerHTML = '<option>Create a new project</option>';
+                    projectSelector.innerHTML = '<option>새 프로젝트를 만들어주세요</option>';
                     return;
                 }
                 projects.forEach(p => {
@@ -365,7 +365,7 @@ Keyword 2"></textarea>
                 localStorage.setItem('currentProjectId', currentProjectId);
                 displayCurrentProjectInfo();
                 updateDashboard();
-                resultContent.innerHTML = '<p>Project changed. Start tracking to see results.</p>';
+                resultContent.innerHTML = '<p>프로젝트가 변경되었습니다. 순위 추적을 시작하세요.</p>';
             }
 
             function saveCurrentProjectInfo() {
@@ -377,13 +377,13 @@ Keyword 2"></textarea>
                     projects[projectIndex].competitors = parseTextToCompetitors(competitorsEl.value);
                     projects[projectIndex].keywords = rankKeywordsEl.value.split('\n').map(k => k.trim()).filter(Boolean);
                     saveProjects(projects);
-                    alert('Project information saved successfully.');
+                    alert('프로젝트 정보가 성공적으로 저장되었습니다.');
                 }
             }
             
             function handleDeleteProject() {
-                if (!currentProjectId || projects.length === 0) return alert('No project selected to delete.');
-                if (confirm(`Are you sure you want to delete the project '${projects.find(p=>p.id===currentProjectId).name}'?`)) {
+                if (!currentProjectId || projects.length === 0) return alert('삭제할 프로젝트가 선택되지 않았습니다.');
+                if (confirm(`'${projects.find(p=>p.id===currentProjectId).name}' 프로젝트를 정말 삭제하시겠습니까? 관련 데이터가 모두 삭제됩니다.`)) {
                     projects = projects.filter(p => p.id !== currentProjectId);
                     currentProjectId = projects.length > 0 ? projects[0].id : null;
                     localStorage.setItem('currentProjectId', currentProjectId);
@@ -400,7 +400,7 @@ Keyword 2"></textarea>
                 if (mode === 'edit' && currentProjectId) {
                     const project = projects.find(p => p.id === currentProjectId);
                     if (!project) return;
-                    modalTitle.textContent = 'Edit Project';
+                    modalTitle.textContent = '프로젝트 수정';
                     editingProjectId = project.id;
                     modalProjectName.value = project.name;
                     modalProductName.value = project.productName || '';
@@ -408,7 +408,7 @@ Keyword 2"></textarea>
                     modalCompetitors.value = formatCompetitorsToText(project.competitors);
                     modalKeywords.value = (project.keywords || []).join('\n');
                 } else {
-                    modalTitle.textContent = 'Create New Project';
+                    modalTitle.textContent = '새 프로젝트 만들기';
                     editingProjectId = null;
                     modalProjectName.value = '';
                     modalProductName.value = '';
@@ -425,7 +425,7 @@ Keyword 2"></textarea>
             function handleSaveProject() {
                 const name = modalProjectName.value.trim();
                 const productName = modalProductName.value.trim();
-                if (!name || !productName) return alert('Project Name and My Product Name are required.');
+                if (!name || !productName) return alert('프로젝트 이름과 내 상품명은 필수입니다.');
 
                 const projectData = {
                     name,
@@ -461,9 +461,9 @@ Keyword 2"></textarea>
                 if(clientIdEl.value && clientSecretEl.value) {
                     localStorage.setItem('naverClientId', clientIdEl.value);
                     localStorage.setItem('naverClientSecret', clientSecretEl.value);
-                    alert('API Keys saved successfully!');
+                    alert('API 키가 성공적으로 저장되었습니다!');
                 } else {
-                    alert('Please enter both Client ID and Client Secret.');
+                    alert('Client ID와 Client Secret을 모두 입력해주세요.');
                 }
             }
 
@@ -475,19 +475,19 @@ Keyword 2"></textarea>
             function updateLoaderProgress(completed, total) {
                 const percentage = total > 0 ? (completed / total) * 100 : 0;
                 progressBar.style.width = `${percentage}%`;
-                progressText.textContent = `Processing... (${completed}/${total})`;
+                progressText.textContent = `처리 중... (${completed}/${total})`;
             }
 
             async function handleRankCheck() {
-                if (!currentProjectId) return alert('Please select or create a project first.');
+                if (!currentProjectId) return alert('먼저 프로젝트를 선택하거나 생성해주세요.');
                 
                 const project = projects.find(p => p.id === currentProjectId);
-                if (!project || !project.productName) return alert('Please enter your product name.');
-                if (!project.keywords || project.keywords.length === 0) return alert('Please enter keywords to track.');
+                if (!project || !project.productName) return alert('내 상품명을 입력해주세요.');
+                if (!project.keywords || project.keywords.length === 0) return alert('추적할 키워드를 입력해주세요.');
 
                 const userClientId = localStorage.getItem('naverClientId');
                 const userClientSecret = localStorage.getItem('naverClientSecret');
-                if (!userClientId || !userClientSecret) return alert('Please set and save your API keys first.');
+                if (!userClientId || !userClientSecret) return alert('API 키를 먼저 설정하고 저장해주세요.');
 
                 const productsToCheck = [
                     { product: project.productName, store: project.storeName }, 
@@ -497,7 +497,7 @@ Keyword 2"></textarea>
                 const totalTasks = productsToCheck.length * project.keywords.length;
 
                 if (totalTasks > MAX_REQUESTS) {
-                    return alert(`Too many requests! A maximum of ${MAX_REQUESTS} checks are allowed at once. You are attempting ${totalTasks}. Please reduce the number of keywords or competitors.`);
+                    return alert(`요청이 너무 많습니다! 한 번에 최대 ${MAX_REQUESTS}개까지만 조회가 가능합니다. (현재 요청: ${totalTasks}개) 키워드나 경쟁사 수를 줄여주세요.`);
                 }
                 
                 let completedTasks = 0;
@@ -506,7 +506,7 @@ Keyword 2"></textarea>
                 resultContent.innerHTML = '<ul></ul>';
                 
                 for (const keyword of project.keywords) {
-                    resultContent.querySelector('ul').innerHTML += `<li><strong>--- Tracking keyword: '${keyword}' ---</strong></li>`;
+                    resultContent.querySelector('ul').innerHTML += `<li><strong>--- 키워드 추적 중: '${keyword}' ---</strong></li>`;
                     for (const item of productsToCheck) {
                         const rank = await fetchRankFromNetlify(keyword, item.product, item.store, userClientId, userClientSecret);
                         
@@ -514,7 +514,7 @@ Keyword 2"></textarea>
                         updateLoaderProgress(completedTasks, totalTasks);
                         
                         const today = new Date().toISOString().split('T')[0];
-                        const rankText = rank > 0 ? `${rank}th` : 'Outside top 1000';
+                        const rankText = rank > 0 ? `${rank}위` : '1000위 밖';
                         
                         const li = document.createElement('li');
                         const storeText = item.store ? ` (${item.store})` : '';
@@ -541,30 +541,30 @@ Keyword 2"></textarea>
                 try {
                     const params = new URLSearchParams({ keyword, product: productName, store: storeName, clientId, clientSecret });
                     const response = await fetch(`/.netlify/functions/get-rank?${params.toString()}`);
-                    if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+                    if (!response.ok) throw new Error(`서버 오류: ${response.status}`);
                     const data = await response.json();
                     return data.rank;
                 } catch (error) {
-                    console.error("API Error:", error);
-                     resultContent.querySelector('ul').innerHTML += `<li style="color: red;">🚨 Error fetching '${productName}'!</li>`;
+                    console.error("API 오류:", error);
+                     resultContent.querySelector('ul').innerHTML += `<li style="color: red;">🚨 '${productName}' 조회 중 오류 발생!</li>`;
                     return -1;
                 }
             }
 
             function updateDashboard() {
                  if (!currentProjectId) {
-                     dashboardSubtitle.textContent = 'Select a project to see the rank chart.';
+                     dashboardSubtitle.textContent = '프로젝트를 선택하면 순위 차트가 표시됩니다.';
                      if (rankChart) rankChart.destroy();
                      keywordChartFilter.innerHTML = '';
                      return;
                  }
                 const project = projects.find(p => p.id === currentProjectId);
-                dashboardSubtitle.textContent = `Dashboard for '${project.name}'`;
+                dashboardSubtitle.textContent = `'${project.name}' 프로젝트 대시보드`;
 
                 const uniqueKeywords = [...new Set((project.rankData || []).map(d => d.keyword))];
                 
                 const currentFilterValue = keywordChartFilter.value;
-                keywordChartFilter.innerHTML = '<option value="">-- Select keyword for chart --</option>';
+                keywordChartFilter.innerHTML = '<option value="">-- 차트를 볼 키워드 선택 --</option>';
                 uniqueKeywords.forEach(k => {
                     const option = document.createElement('option');
                     option.value = k;
