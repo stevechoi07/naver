@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v13.0 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v14.0 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -51,7 +51,7 @@
             🚀 순위추적기
         </a>
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v13.0</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v14.0</h1>
             <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (실시간 순차 처리)</p>
         </header>
 
@@ -112,7 +112,7 @@
                  <div class="sticky-header rounded-2xl shadow-lg p-6 space-y-4">
                     <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-3">🔬 HTML 정밀 부검실</h2>
                     <div>
-                        <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="✨ 초간편 사용 가이드:&#10;1. 검색 & 클릭 → 중앙에서 상품을 클릭하여 새 탭으로 여세요.&#10;2. F12 & 복사 → 새 탭에서 F12를 누르고, HTML 전체를 복사하세요.&#10;3. 붙여넣기 & 분석 → 여기에 붙여넣고 '정밀 분석' 버튼을 누르세요."></textarea>
+                        <textarea id="html-input" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="✨ 초간편 사용 가이드:&#10;1. 검색 & 클릭 → 중앙에서 상품을 클릭하여 새 탭으로 여세요.&#10;2. F12 & 복사 → 새 탭에서 F12를 누르고, HTML 전체를 복사하세요.&#10;3. 붙여넣기 & 분석 → 여기에 붙여넣고 '정밀 분석' 버튼을 누르세요.&#10;4. 키워드 확장 분석: '시장 분석'의 키워드를 띄어쓰기로 나눠 검색하면, 각 단어별 분석도 가능합니다. (예: 안전멀티탭 → 안전 멀티탭)"></textarea>
                     </div>
                     <button id="analyze-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition text-lg">
                         정밀 분석 시작!
@@ -469,7 +469,6 @@
         const productName = productNameInput.value.trim();
         const storeName = storeNameInput.value.trim();
 
-        // v13.0 변경점: 키워드 개수 50개 제한
         const keywordLines = keywordsRaw.split('\n').filter(line => line.trim() !== '');
         if (keywordLines.length > 50) {
             showMessage(rankCheckStatus, '오류: 키워드는 최대 50개까지만 입력할 수 있습니다.', 'error');
@@ -889,7 +888,7 @@
     // Initial load from localStorage
     loadProjects();
     loadSavedKeywords();
-</script>    
+</script    
 
 </body>
 </html>
