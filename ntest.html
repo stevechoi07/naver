@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 조종기 v1.6</title>
+    <title>네이버 순위 탐정 조종기 v1.7</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* [이전 CSS 코드는 여기에 그대로 유지됩니다...] */
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 조종기 v1.6 - style.css                               */
+        /* 🕵️‍♂️ 네이버 순위 탐정 조종기 v1.7 - style.css                               */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
         :root {
@@ -67,7 +67,7 @@
 </head>
 <body>
     <div class="main-container">
-        <h1>🕵️‍♂️ 순위 탐정 관제 센터 v1.6</h1>
+        <h1>🕵️‍♂️ 순위 탐정 관제 센터 v1.7</h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -85,7 +85,12 @@
                     <h2>📝 현재 프로젝트 정보</h2>
                     <input type="text" id="product-name" placeholder="상품명">
                     <input type="text" id="store-name" placeholder="스토어명 (선택)">
-                    <textarea id="rank-keywords" rows="5" placeholder="추적할 키워드 (한 줄에 하나씩)"></textarea>
+                    <textarea id="rank-keywords" rows="8" placeholder="## 메인 키워드
+남자 반팔티
+기능성 의류
+
+## 롱테일 키워드
+땀 잘 마르는 운동복 상의"></textarea>
                      <p style="font-size: 0.8rem; text-align: right;">
                         <a href="#" id="save-changes-link">변경사항 저장하기</a>
                     </p>
@@ -134,7 +139,9 @@
             <input type="text" id="modal-project-name" placeholder="프로젝트 이름 (예: 여름 신상 의류)">
             <input type="text" id="modal-product-name" placeholder="상품명">
             <input type="text" id="modal-store-name" placeholder="스토어명 (선택)">
-            <textarea id="modal-keywords" rows="5" placeholder="관련 키워드 (한 줄에 하나씩)"></textarea>
+            <textarea id="modal-keywords" rows="5" placeholder="## 메인 키워드
+남자 반팔티
+기능성 의류"></textarea>
             <div class="button-group">
                 <button id="modal-cancel-btn">취소</button>
                 <button id="modal-save-btn" class="primary">저장</button>
@@ -184,8 +191,8 @@
             const rankCheckBtn = document.getElementById('rank-check-btn');
 
             // --- 데이터 관리 ---
-            const getProjects = () => JSON.parse(localStorage.getItem('projects_v1')) || [];
-            const saveProjects = (projs) => localStorage.setItem('projects_v1', JSON.stringify(projs));
+            const getProjects = () => JSON.parse(localStorage.getItem('projects_v2')) || [];
+            const saveProjects = (projs) => localStorage.setItem('projects_v2', JSON.stringify(projs));
             
             // --- 초기화 ---
             function initializeApp() {
@@ -222,17 +229,46 @@
 
             function displayCurrentProjectInfo() {
                 if (!currentProjectId || projects.length === 0) {
-                    productNameEl.value = '';
-                    storeNameEl.value = '';
-                    rankKeywordsEl.value = '';
+                    productNameEl.value = ''; storeNameEl.value = ''; rankKeywordsEl.value = '';
                     return;
                 }
                 const project = projects.find(p => p.id === currentProjectId);
                 if (project) {
                     productNameEl.value = project.productName;
                     storeNameEl.value = project.storeName;
-                    rankKeywordsEl.value = project.keywords.join('\n');
+                    // keywordGroups를 텍스트로 변환
+                    rankKeywordsEl.value = formatKeywordGroupsToText(project.keywordGroups);
                 }
+            }
+            
+            // --- 키워드 그룹 파싱 & 포맷팅 ---
+            function parseTextToKeywordGroups(text) {
+                const lines = text.split('\n');
+                let groups = [];
+                let currentGroup = { groupName: '기본', keywords: [] };
+                groups.push(currentGroup);
+
+                lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('## ')) {
+                        const groupName = trimmedLine.substring(3).trim();
+                        if (groupName) {
+                            currentGroup = { groupName, keywords: [] };
+                            groups.push(currentGroup);
+                        }
+                    } else if (trimmedLine) {
+                        currentGroup.keywords.push(trimmedLine);
+                    }
+                });
+                return groups.filter(g => g.groupName || g.keywords.length > 0);
+            }
+
+            function formatKeywordGroupsToText(groups) {
+                if (!groups || groups.length === 0) return '';
+                return groups.map(group => {
+                    const header = group.groupName !== '기본' ? `## ${group.groupName}\n` : '';
+                    return header + group.keywords.join('\n');
+                }).join('\n\n').trim();
             }
 
             // --- 프로젝트 데이터 조작 ---
@@ -250,7 +286,7 @@
                 if (projectIndex > -1) {
                     projects[projectIndex].productName = productNameEl.value.trim();
                     projects[projectIndex].storeName = storeNameEl.value.trim();
-                    projects[projectIndex].keywords = rankKeywordsEl.value.split('\n').map(k => k.trim()).filter(Boolean);
+                    projects[projectIndex].keywordGroups = parseTextToKeywordGroups(rankKeywordsEl.value);
                     saveProjects(projects);
                     alert('현재 프로젝트 정보가 저장되었습니다.');
                 }
@@ -281,14 +317,14 @@
                     modalProjectName.value = project.name;
                     modalProductName.value = project.productName;
                     modalStoreName.value = project.storeName;
-                    modalKeywords.value = project.keywords.join('\n');
+                    modalKeywords.value = formatKeywordGroupsToText(project.keywordGroups);
                 } else {
                     modalTitle.textContent = '새 프로젝트 만들기';
                     editingProjectId = null;
                     modalProjectName.value = '';
                     modalProductName.value = '';
                     modalStoreName.value = '';
-                    modalKeywords.value = '';
+                    modalKeywords.value = '## 메인 키워드\n\n## 롱테일 키워드\n';
                 }
             }
 
@@ -302,21 +338,22 @@
                 const productName = modalProductName.value.trim();
                 if (!name || !productName) return alert('프로젝트 이름과 상품명은 필수입니다.');
 
+                const projectData = {
+                    name,
+                    productName,
+                    storeName: modalStoreName.value.trim(),
+                    keywordGroups: parseTextToKeywordGroups(modalKeywords.value),
+                };
+
                 if (editingProjectId) { // 수정 모드
                     const projectIndex = projects.findIndex(p => p.id === editingProjectId);
                     if (projectIndex > -1) {
-                        projects[projectIndex].name = name;
-                        projects[projectIndex].productName = productName;
-                        projects[projectIndex].storeName = modalStoreName.value.trim();
-                        projects[projectIndex].keywords = modalKeywords.value.split('\n').map(k => k.trim()).filter(Boolean);
+                        projects[projectIndex] = { ...projects[projectIndex], ...projectData };
                     }
                 } else { // 생성 모드
                     const newProject = {
                         id: `proj_${Date.now()}`,
-                        name,
-                        productName,
-                        storeName: modalStoreName.value.trim(),
-                        keywords: modalKeywords.value.split('\n').map(k => k.trim()).filter(Boolean),
+                        ...projectData,
                         rankData: []
                     };
                     projects.push(newProject);
@@ -351,7 +388,9 @@
                 if (!currentProjectId) return alert('먼저 프로젝트를 선택하거나 생성해주세요.');
                 
                 const project = projects.find(p => p.id === currentProjectId);
-                if (!project || project.keywords.length === 0) return alert('추적할 키워드를 입력해주세요.');
+                const allKeywords = project.keywordGroups.flatMap(g => g.keywords);
+
+                if (!project || allKeywords.length === 0) return alert('추적할 키워드를 입력해주세요.');
 
                 const userClientId = localStorage.getItem('naverClientId');
                 const userClientSecret = localStorage.getItem('naverClientSecret');
@@ -360,7 +399,7 @@
                 loader.style.display = 'flex';
                 resultContent.innerHTML = '<ul></ul>';
                 
-                for (const keyword of project.keywords) {
+                for (const keyword of allKeywords) {
                     const rank = await fetchRankFromNetlify(keyword, project.productName, project.storeName, userClientId, userClientSecret);
                     const today = new Date().toISOString().split('T')[0];
                     const rankText = rank > 0 ? `${rank}위` : '1000위 밖';
