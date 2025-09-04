@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v10.0 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v11.0 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -51,7 +51,7 @@
             🚀 순위추적기
         </a>
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v10.0</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v11.0</h1>
             <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (실시간 순차 처리)</p>
         </header>
 
@@ -133,10 +133,16 @@
                      </div>
                      <div class="bg-indigo-50 p-3 rounded-lg mb-4">
                         <h4 class="text-sm font-bold text-indigo-800 mb-2">📁 프로젝트 관리</h4>
-                        <div class="flex items-center gap-2">
-                           <select id="project-selector" class="flex-grow p-2 border border-gray-300 rounded-lg text-sm"></select>
-                           <input type="text" id="new-project-name" class="p-2 border border-gray-300 rounded-lg text-sm" placeholder="새 프로젝트 이름">
-                           <button id="create-project-button" class="bg-indigo-500 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-indigo-600 transition">생성</button>
+                        <div class="space-y-2">
+                            <select id="project-selector" class="w-full p-2 border border-gray-300 rounded-lg text-sm"></select>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="new-project-name" class="flex-grow p-2 border border-gray-300 rounded-lg text-sm" placeholder="새 프로젝트 이름">
+                                <button id="create-project-button" class="bg-indigo-500 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-indigo-600 transition">생성</button>
+                            </div>
+                            <div class="flex items-center justify-end gap-2">
+                               <button id="rename-project-button" class="text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">이름 변경</button>
+                               <button id="delete-project-button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors">프로젝트 삭제</button>
+                            </div>
                         </div>
                      </div>
                      <div id="analyzed-results-container" class="p-2 bg-gray-50 rounded-lg space-y-3 min-h-[24rem]">
@@ -165,7 +171,6 @@
     const storeNameInput = document.getElementById('store-name-input');
     const rankCheckStatus = document.getElementById('rank-check-status');
     const registeredKeywordsContainer = document.getElementById('registered-keywords-container');
-    // v9.1 변경점: 목록 지우기 버튼 Element 추가
     const clearKeywordsButton = document.getElementById('clear-keywords-button');
     
     const searchButton = document.getElementById('search-button');
@@ -180,9 +185,12 @@
     const clearAnalyzedButton = document.getElementById('clear-analyzed-button');
     const exportCsvButton = document.getElementById('export-csv-button');
     
+    // v11.0 변경점: 프로젝트 관리 버튼 Element 추가
     const projectSelector = document.getElementById('project-selector');
     const newProjectNameInput = document.getElementById('new-project-name');
     const createProjectButton = document.getElementById('create-project-button');
+    const renameProjectButton = document.getElementById('rename-project-button');
+    const deleteProjectButton = document.getElementById('delete-project-button');
     
     const confirmModal = document.getElementById('custom-confirm-modal');
     const confirmModalMessage = document.getElementById('confirm-modal-message');
@@ -195,11 +203,14 @@
     let currentAnalysisKeywords = [];
     let allProjects = {};
     let currentProjectName = '기본 프로젝트';
+    // v11.0 변경점: 이름 변경 모드를 위한 상태 변수 추가
+    let isRenameMode = false;
+    let originalProjectName = '';
+
 
     // --- localStorage Logic ---
     const PROJECTS_KEY = 'allAnalyzedProjects_v8_local';
     const LAST_PROJECT_KEY = 'lastSelectedProject_v8_local';
-    // v9.1 변경점: 키워드 저장을 위한 localStorage 키 추가
     const KEYWORDS_KEY = 'savedRankKeywords_v9_local';
 
     function getAllProjects() {
@@ -211,7 +222,6 @@
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
     }
 
-    // v9.1 변경점: 저장된 키워드를 불러오는 함수 추가
     function loadSavedKeywords() {
         const savedKeywords = localStorage.getItem(KEYWORDS_KEY);
         if (savedKeywords) {
@@ -240,16 +250,23 @@
     // --- Project Logic ---
     function loadProjects() {
         allProjects = getAllProjects();
-        const lastProject = localStorage.getItem(LAST_PROJECT_KEY);
-        if (lastProject && allProjects[lastProject]) {
-            currentProjectName = lastProject;
-        } else {
-            currentProjectName = Object.keys(allProjects)[0] || '기본 프로젝트';
-             if (!allProjects[currentProjectName]) {
-                allProjects[currentProjectName] = [];
-                saveAllProjects(allProjects);
-            }
+        let lastProject = localStorage.getItem(LAST_PROJECT_KEY);
+
+        // v11.0 변경점: 삭제된 프로젝트가 마지막 선택 프로젝트일 경우 처리
+        if (!allProjects[lastProject]) {
+            lastProject = Object.keys(allProjects)[0] || '기본 프로젝트';
+            localStorage.setItem(LAST_PROJECT_KEY, lastProject);
         }
+        
+        currentProjectName = lastProject;
+
+        if (!allProjects[currentProjectName]) {
+            allProjects['기본 프로젝트'] = [];
+            currentProjectName = '기본 프로젝트';
+            saveAllProjects(allProjects);
+            localStorage.setItem(LAST_PROJECT_KEY, currentProjectName);
+        }
+        
         updateProjectSelector();
         renderAnalyzedProducts();
     }
@@ -267,9 +284,38 @@
         });
     }
     
+    // v11.0 변경점: 프로젝트 생성/이름변경 로직 분리 및 강화
     createProjectButton.addEventListener('click', () => {
         const newName = newProjectNameInput.value.trim();
-        if (newName && !allProjects[newName]) {
+        if (!newName) return;
+
+        if (isRenameMode) {
+            // 이름 변경 로직
+            if (newName === originalProjectName) {
+                 // 이름이 같다면 모드만 종료
+                exitRenameMode();
+                return;
+            }
+            if (allProjects[newName]) {
+                alert('이미 존재하는 프로젝트 이름입니다.');
+                return;
+            }
+            // 데이터 복사 및 이전 데이터 삭제
+            allProjects[newName] = allProjects[originalProjectName];
+            delete allProjects[originalProjectName];
+            
+            currentProjectName = newName;
+            saveAllProjects(allProjects);
+            localStorage.setItem(LAST_PROJECT_KEY, currentProjectName);
+            exitRenameMode();
+            updateProjectSelector();
+
+        } else {
+            // 프로젝트 생성 로직
+            if (allProjects[newName]) {
+                alert('이미 존재하는 프로젝트 이름입니다.');
+                return;
+            }
             allProjects[newName] = [];
             currentProjectName = newName;
             saveAllProjects(allProjects);
@@ -277,15 +323,61 @@
             updateProjectSelector();
             renderAnalyzedProducts();
             newProjectNameInput.value = '';
-        } else if (allProjects[newName]) {
-            alert('이미 존재하는 프로젝트 이름입니다.');
         }
     });
+
+    // v11.0 변경점: 이름 변경 모드 진입/종료 함수
+    function enterRenameMode() {
+        originalProjectName = projectSelector.value;
+        if (originalProjectName === '기본 프로젝트') {
+            alert('기본 프로젝트는 이름을 변경할 수 없습니다.');
+            return;
+        }
+        isRenameMode = true;
+        newProjectNameInput.value = originalProjectName;
+        createProjectButton.textContent = '저장';
+        createProjectButton.classList.remove('bg-indigo-500', 'hover:bg-indigo-600');
+        createProjectButton.classList.add('bg-orange-500', 'hover:bg-orange-600');
+        newProjectNameInput.focus();
+    }
+
+    function exitRenameMode() {
+        isRenameMode = false;
+        originalProjectName = '';
+        newProjectNameInput.value = '';
+        createProjectButton.textContent = '생성';
+        createProjectButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+        createProjectButton.classList.add('bg-indigo-500', 'hover:bg-indigo-600');
+    }
+
+    renameProjectButton.addEventListener('click', enterRenameMode);
+    
+    // v11.0 변경점: 프로젝트 삭제 로직 추가
+    deleteProjectButton.addEventListener('click', async () => {
+        const projectToDelete = projectSelector.value;
+        if (projectToDelete === '기본 프로젝트') {
+            alert('기본 프로젝트는 삭제할 수 없습니다.');
+            return;
+        }
+        if (Object.keys(allProjects).length <= 1) {
+            alert('마지막 남은 프로젝트는 삭제할 수 없습니다.');
+            return;
+        }
+
+        const confirmed = await showCustomConfirm(`'${projectToDelete}' 프로젝트를 정말 삭제하시겠습니까? 모든 분석 기록이 영구적으로 사라집니다.`);
+        if (confirmed) {
+            delete allProjects[projectToDelete];
+            saveAllProjects(allProjects);
+            loadProjects(); // 프로젝트 목록과 현재 상태를 재설정
+        }
+    });
+
 
     projectSelector.addEventListener('change', (e) => {
         currentProjectName = e.target.value;
         localStorage.setItem(LAST_PROJECT_KEY, currentProjectName);
         renderAnalyzedProducts();
+        if (isRenameMode) exitRenameMode(); // 다른 프로젝트 선택 시 이름 변경 모드 종료
     });
 
     // --- UI Logic ---
@@ -341,7 +433,6 @@
     searchButton.addEventListener('click', () => handleSearch(keywordInput.value));
     analyzeButton.addEventListener('click', handleManualAnalysis);
     
-    // v9.1 변경점: 목록 지우기 버튼 이벤트 리스너 추가
     clearKeywordsButton.addEventListener('click', async () => {
         if (!keywordsTextarea.value.trim()) {
             showMessage(rankCheckStatus, '지울 키워드 목록이 없습니다.', 'error');
@@ -393,7 +484,6 @@
             return;
         }
         
-        // v9.1 변경점: 랭킹 확인 시 키워드 목록을 localStorage에 저장
         localStorage.setItem(KEYWORDS_KEY, keywordsRaw);
 
         const keywords = keywordsRaw.split('\n').map(line => {
@@ -801,7 +891,6 @@
 
     // Initial load from localStorage
     loadProjects();
-    // v9.1 변경점: 페이지 로드 시 저장된 키워드 불러오기
     loadSavedKeywords();
 </script>    
 
