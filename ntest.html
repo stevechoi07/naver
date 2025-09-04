@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v2.3</title>
+    <title>네이버 순위 탐정 v2.4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v2.3 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v2.4 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -26,11 +26,7 @@
             --font-main: 'Inter', 'Noto Sans KR', sans-serif;
         }
         
-        /* --- Font Size Adjustment --- */
-        html {
-            font-size: 15px; /* 기본 폰트 크기를 15px로 줄여 rem 단위에 영향을 줍니다. */
-        }
-
+        html { font-size: 15px; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
@@ -45,10 +41,9 @@
             max-width: 1280px;
             margin: 40px auto;
             padding: 0 20px;
-            position: relative; /* Home 버튼 위치 기준 */
+            position: relative;
         }
 
-        /* --- Home Button --- */
         .home-button {
             position: absolute;
             top: 10px;
@@ -69,7 +64,6 @@
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
         }
 
-
         .main-layout { display: flex; gap: 30px; }
         .control-panel { flex: 1; position: sticky; top: 40px; align-self: flex-start; }
         .content-area { flex: 2.5; min-width: 0; }
@@ -81,7 +75,7 @@
             font-weight: 700;
             margin-bottom: 40px;
             letter-spacing: -1px;
-            padding-top: 40px; /* Home 버튼 공간 확보 */
+            padding-top: 40px;
         }
         h1 span { color: var(--primary-color); }
         
@@ -97,7 +91,7 @@
             font-size: 1.6rem;
             border-bottom: none;
             padding-bottom: 0;
-            margin-bottom: 8px;
+            margin-bottom: 0; /* Adjusted for card-header */
             display: flex;
             align-items: center;
             gap: 10px;
@@ -108,6 +102,13 @@
             font-size: 0.95rem;
         }
         
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
         label { font-weight: 500; margin-bottom: 8px; display: block; font-size: 0.9rem; color: #555; }
         
         input[type="text"], input[type="password"], textarea, select {
@@ -151,12 +152,13 @@
         }
 
         #rank-check-btn {
-            font-size: 1.5rem;
-            padding: 24px;
+            width: auto;
+            font-size: 1.1rem;
+            padding: 12px 24px;
         }
         
         .button-group { display: flex; gap: 10px; }
-        .button-group button { background-color: var(--subtext-color); box-shadow: none; font-size: 1rem; }
+        .button-group button { background-color: var(--subtext-color); box-shadow: none; font-size: 0.9rem; } /* Font size reduced */
         .button-group button:hover { background-color: #777; }
         .button-group button.primary { background-color: var(--info-color); box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2); }
         .button-group button.primary:hover { background-color: #2980b9; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(52, 152, 219, 0.3); }
@@ -190,7 +192,7 @@
 <body>
     <div class="main-container">
         <a href="index.html" class="home-button">🏠 홈으로</a>
-        <h1>🕵️‍♂️ 순위 추적기 <span>v2.3</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v2.4</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -205,11 +207,10 @@
                 </div>
 
                 <div class="card">
-                    <button id="rank-check-btn">🚀 START</button>
-                </div>
-
-                <div class="card">
-                    <h2>📝 프로젝트 정보</h2>
+                    <div class="card-header">
+                        <h2>📝 프로젝트 정보</h2>
+                        <button id="rank-check-btn">🚀 START</button>
+                    </div>
                     <label for="my-product-name">내 상품</label>
                     <input type="text" id="my-product-name" placeholder="상품명">
                     <label for="store-name">내 스토어 (선택)</label>
