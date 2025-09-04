@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 청진기 v12.0 - SEO 전략 사령부</title>
+    <title>HTML 청진기 v13.0 - SEO 전략 사령부</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -51,7 +51,7 @@
             🚀 순위추적기
         </a>
         <header class="text-center mb-8 flex-shrink-0">
-            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v12.0</h1>
+            <h1 class="text-4xl font-bold text-gray-900">🩺 HTML 청진기 v13.0</h1>
             <p class="text-lg text-gray-600 mt-2">'SEO 전략 사령부' 에디션 (실시간 순차 처리)</p>
         </header>
 
@@ -102,8 +102,8 @@
                 </div>
                 <div class="bg-white rounded-2xl shadow-lg p-6">
                     <h3 class="text-xl font-semibold border-b border-gray-200 pb-2 mb-3">분석 결과 (1페이지):</h3>
-                    <div id="search-results" class="grid grid-cols-2 gap-2">
-                        <p class="text-gray-500 text-center mt-4 col-span-2">조사 대기 중...</p>
+                    <div id="search-results" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <p class="text-gray-500 text-center mt-4 col-span-2 md:col-span-4">조사 대기 중...</p>
                     </div>
                 </div>
             </div>
@@ -185,7 +185,6 @@
     const clearAnalyzedButton = document.getElementById('clear-analyzed-button');
     const exportCsvButton = document.getElementById('export-csv-button');
     
-    // v11.0 변경점: 프로젝트 관리 버튼 Element 추가
     const projectSelector = document.getElementById('project-selector');
     const newProjectNameInput = document.getElementById('new-project-name');
     const createProjectButton = document.getElementById('create-project-button');
@@ -203,7 +202,6 @@
     let currentAnalysisKeywords = [];
     let allProjects = {};
     let currentProjectName = '기본 프로젝트';
-    // v11.0 변경점: 이름 변경 모드를 위한 상태 변수 추가
     let isRenameMode = false;
     let originalProjectName = '';
 
@@ -252,7 +250,6 @@
         allProjects = getAllProjects();
         let lastProject = localStorage.getItem(LAST_PROJECT_KEY);
 
-        // v11.0 변경점: 삭제된 프로젝트가 마지막 선택 프로젝트일 경우 처리
         if (!allProjects[lastProject]) {
             lastProject = Object.keys(allProjects)[0] || '기본 프로젝트';
             localStorage.setItem(LAST_PROJECT_KEY, lastProject);
@@ -284,15 +281,12 @@
         });
     }
     
-    // v11.0 변경점: 프로젝트 생성/이름변경 로직 분리 및 강화
     createProjectButton.addEventListener('click', () => {
         const newName = newProjectNameInput.value.trim();
         if (!newName) return;
 
         if (isRenameMode) {
-            // 이름 변경 로직
             if (newName === originalProjectName) {
-                 // 이름이 같다면 모드만 종료
                 exitRenameMode();
                 return;
             }
@@ -300,7 +294,6 @@
                 alert('이미 존재하는 프로젝트 이름입니다.');
                 return;
             }
-            // 데이터 복사 및 이전 데이터 삭제
             allProjects[newName] = allProjects[originalProjectName];
             delete allProjects[originalProjectName];
             
@@ -311,7 +304,6 @@
             updateProjectSelector();
 
         } else {
-            // 프로젝트 생성 로직
             if (allProjects[newName]) {
                 alert('이미 존재하는 프로젝트 이름입니다.');
                 return;
@@ -326,7 +318,6 @@
         }
     });
 
-    // v11.0 변경점: 이름 변경 모드 진입/종료 함수
     function enterRenameMode() {
         originalProjectName = projectSelector.value;
         if (originalProjectName === '기본 프로젝트') {
@@ -352,7 +343,6 @@
 
     renameProjectButton.addEventListener('click', enterRenameMode);
     
-    // v11.0 변경점: 프로젝트 삭제 로직 추가
     deleteProjectButton.addEventListener('click', async () => {
         const projectToDelete = projectSelector.value;
         if (projectToDelete === '기본 프로젝트') {
@@ -368,7 +358,7 @@
         if (confirmed) {
             delete allProjects[projectToDelete];
             saveAllProjects(allProjects);
-            loadProjects(); // 프로젝트 목록과 현재 상태를 재설정
+            loadProjects(); 
         }
     });
 
@@ -377,7 +367,7 @@
         currentProjectName = e.target.value;
         localStorage.setItem(LAST_PROJECT_KEY, currentProjectName);
         renderAnalyzedProducts();
-        if (isRenameMode) exitRenameMode(); // 다른 프로젝트 선택 시 이름 변경 모드 종료
+        if (isRenameMode) exitRenameMode();
     });
 
     // --- UI Logic ---
@@ -479,6 +469,13 @@
         const productName = productNameInput.value.trim();
         const storeName = storeNameInput.value.trim();
 
+        // v13.0 변경점: 키워드 개수 50개 제한
+        const keywordLines = keywordsRaw.split('\n').filter(line => line.trim() !== '');
+        if (keywordLines.length > 50) {
+            showMessage(rankCheckStatus, '오류: 키워드는 최대 50개까지만 입력할 수 있습니다.', 'error');
+            return;
+        }
+
         if (!keywordsRaw || !productName) {
             showMessage(rankCheckStatus, '키워드 목록과 상품명을 모두 입력해주세요.', 'error');
             return;
@@ -486,7 +483,7 @@
         
         localStorage.setItem(KEYWORDS_KEY, keywordsRaw);
 
-        const keywords = keywordsRaw.split('\n').map(line => {
+        const keywords = keywordLines.map(line => {
             const parts = line.split(/[\s,]+/);
             return {
                 keyword: parts[0]?.trim(),
@@ -674,7 +671,7 @@
         searchResultsContainer.innerHTML = '';
         const analyzedProductLinks = new Set(getCurrentProjectProducts().map(p => p.link));
         if (results.length === 0) {
-            searchResultsContainer.innerHTML = '<p class="text-gray-500 text-center mt-4 col-span-2">검색 결과가 없습니다.</p>';
+            searchResultsContainer.innerHTML = '<p class="text-gray-500 text-center mt-4 col-span-2 md:col-span-4">검색 결과가 없습니다.</p>';
             return;
         }
         results.forEach((product, index) => {
