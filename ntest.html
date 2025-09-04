@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v3.2</title>
+    <title>네이버 순위 탐정 v3.3</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v3.2 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v3.3 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -204,8 +205,27 @@
         
         .dashboard-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
         .dashboard-header h2 { flex-grow: 1; margin-bottom: 0; }
-        .dashboard-header .controls { display: flex; gap: 10px; align-items: center; }
-        .dashboard-header select { margin-bottom: 0; max-width: 500px; }
+        .dashboard-header .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .dashboard-header select { margin-bottom: 0; max-width: 250px; }
+
+        .view-mode-toggle { display: flex; background-color: #f0f0f0; border-radius: 8px; padding: 4px; }
+        .view-mode-btn {
+            background-color: transparent;
+            color: var(--subtext-color);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: none;
+            width: auto;
+        }
+        .view-mode-btn.active {
+            background-color: white;
+            color: var(--text-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
 
         @media (max-width: 992px) {
             .main-layout { flex-direction: column; }
@@ -218,7 +238,7 @@
 <body>
     <div class="main-container">
         <a href="index.html" class="home-button">🏠 홈으로</a>
-        <h1>🕵️‍♂️ 순위 추적기 <span>v3.2</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v3.3</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -266,6 +286,10 @@
                     <div class="dashboard-header">
                         <h2>📈 순위 대시보드</h2>
                         <div class="controls">
+                            <div id="view-mode-toggle" class="view-mode-toggle">
+                                <button class="view-mode-btn active" data-mode="daily">일별 보기</button>
+                                <button class="view-mode-btn" data-mode="hourly">시간별 보기</button>
+                            </div>
                             <select id="keyword-chart-filter"></select>
                             <button id="download-csv-btn">엑셀(CSV) 다운로드</button>
                         </div>
@@ -321,6 +345,7 @@
             let projects = [];
             let currentProjectId = null;
             let rankChart;
+            let currentViewMode = 'daily'; // 'daily' or 'hourly'
 
             const loader = document.getElementById('loader');
             const progressBar = document.getElementById('progress-bar');
@@ -359,9 +384,10 @@
             const keywordChartFilter = document.getElementById('keyword-chart-filter');
             const dashboardSubtitle = document.getElementById('dashboard-subtitle');
             const downloadCsvBtn = document.getElementById('download-csv-btn');
+            const viewModeToggle = document.getElementById('view-mode-toggle');
 
-            const getProjects = () => JSON.parse(localStorage.getItem('projects_v6')) || [];
-            const saveProjects = (projs) => localStorage.setItem('projects_v6', JSON.stringify(projs));
+            const getProjects = () => JSON.parse(localStorage.getItem('projects_v7')) || [];
+            const saveProjects = (projs) => localStorage.setItem('projects_v7', JSON.stringify(projs));
             
             function initializeApp() {
                 loadApiKeys();
@@ -574,7 +600,7 @@
                         completedTasks++;
                         updateLoaderProgress(completedTasks, totalTasks);
                         
-                        const today = new Date().toISOString().split('T')[0];
+                        const timestamp = new Date().toISOString();
                         const rankText = rank > 0 ? `${rank}위` : '1000위 밖';
                         
                         const li = document.createElement('li');
@@ -583,20 +609,7 @@
                         resultContent.querySelector('ul').appendChild(li);
 
                         if (rank > 0) {
-                            const existingIndex = project.rankData.findIndex(d =>
-                                d.date === today &&
-                                d.keyword === keyword &&
-                                d.product === item.product && 
-                                d.store === (item.store || '')
-                            );
-
-                            const newData = { date: today, keyword, rank, product: item.product, store: item.store || '' };
-
-                            if (existingIndex > -1) {
-                                project.rankData[existingIndex] = newData;
-                            } else {
-                                project.rankData.push(newData);
-                            }
+                             project.rankData.push({ timestamp, keyword, rank, product: item.product, store: item.store || '' });
                         }
                     }
                 }
@@ -627,11 +640,11 @@
                 }
 
                 let csvContent = "\uFEFF"; 
-                csvContent += "날짜,키워드,상품명,스토어명,순위\n";
+                csvContent += "타임스탬프,키워드,상품명,스토어명,순위\n";
 
                 project.rankData.forEach(d => {
                     const row = [
-                        d.date,
+                        d.timestamp,
                         d.keyword,
                         `"${(d.product || '').replace(/"/g, '""')}"`,
                         `"${(d.store || '').replace(/"/g, '""')}"`,
@@ -682,47 +695,70 @@
                 if (uniqueKeywords.includes(currentFilterValue)) {
                     keywordChartFilter.value = currentFilterValue;
                 }
-
-                if (rankChart) rankChart.destroy();
                 
-                if(keywordChartFilter.value) {
-                    drawChartForKeyword(keywordChartFilter.value);
-                }
+                drawChartForKeyword(keywordChartFilter.value);
             }
             
             function drawChartForKeyword(selectedKeyword) {
                 const project = projects.find(p => p.id === currentProjectId);
-                if (!project || !selectedKeyword) {
-                     if (rankChart) { rankChart.destroy(); rankChart = null; }
-                    return;
-                }
-                const chartData = processDataForChart(project.rankData, selectedKeyword);
-                
-                if (rankChart) rankChart.destroy();
+                if (rankChart) { rankChart.destroy(); rankChart = null; }
 
+                if (!project || !selectedKeyword) return;
+                
+                const chartData = processDataForChart(project.rankData, selectedKeyword, currentViewMode);
+                
                 rankChart = new Chart(rankChartEl, {
-                    type: 'line', data: chartData,
-                    options: { scales: { y: { reverse: true, beginAtZero: false } } }
+                    type: 'line', 
+                    data: chartData,
+                    options: {
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: currentViewMode === 'daily' ? 'day' : 'hour',
+                                    tooltipFormat: 'yyyy-MM-dd HH:mm',
+                                    displayFormats: {
+                                        day: 'yyyy-MM-dd',
+                                        hour: 'MM-dd HH:mm'
+                                    }
+                                }
+                            },
+                            y: { 
+                                reverse: true, 
+                                beginAtZero: false 
+                            } 
+                        } 
+                    }
                 });
             }
 
-            function processDataForChart(data, selectedKeyword) {
+            function processDataForChart(data, selectedKeyword, mode) {
                 if (!data || data.length === 0) return { labels: [], datasets: [] };
                 
                 const project = projects.find(p => p.id === currentProjectId);
-                const dataWithCombinedNames = data.map(d => ({...d, productNameWithStore: d.store ? `${d.product} (${d.store})` : d.product }));
-                
+                let filteredData = data.filter(d => d.keyword === selectedKeyword);
+
+                if (mode === 'daily') {
+                    const dailyLast = {};
+                    filteredData.forEach(d => {
+                        const date = d.timestamp.split('T')[0];
+                        const key = `${date}|${d.product}|${d.store}`;
+                        if (!dailyLast[key] || new Date(d.timestamp) > new Date(dailyLast[key].timestamp)) {
+                            dailyLast[key] = d;
+                        }
+                    });
+                    filteredData = Object.values(dailyLast);
+                }
+
+                const dataWithCombinedNames = filteredData.map(d => ({...d, productNameWithStore: d.store ? `${d.product} (${d.store})` : d.product }));
                 const myProductNameWithStore = project.storeName ? `${project.productName} (${project.storeName})` : project.productName;
                 
-                const filteredData = dataWithCombinedNames.filter(d => d.keyword === selectedKeyword);
-                const labels = [...new Set(filteredData.map(item => item.date))].sort();
-                const products = [...new Set(filteredData.map(item => item.productNameWithStore))];
+                const products = [...new Set(dataWithCombinedNames.map(item => item.productNameWithStore))];
                 
                 const datasets = products.map((productName, index) => {
-                    const productData = labels.map(label => {
-                        const entry = filteredData.find(d => d.date === label && d.productNameWithStore === productName);
-                        return entry ? entry.rank : null;
-                    });
+                    const productData = dataWithCombinedNames
+                        .filter(d => d.productNameWithStore === productName)
+                        .map(d => ({ x: d.timestamp, y: d.rank }));
                     
                     const isMyProduct = productName === myProductNameWithStore;
                     const color = isMyProduct ? 'hsl(210, 80%, 55%)' : `hsl(${ (index * 60) % 360 }, 60%, 65%)`;
@@ -738,7 +774,7 @@
                         pointRadius: isMyProduct ? 5 : 3,
                     };
                 });
-                return { labels, datasets };
+                return { datasets };
             }
 
             // --- Event Listeners ---
@@ -756,6 +792,14 @@
             rankCheckBtn.addEventListener('click', handleRankCheck);
             keywordChartFilter.addEventListener('change', (e) => drawChartForKeyword(e.target.value));
             downloadCsvBtn.addEventListener('click', handleDownloadCsv);
+            viewModeToggle.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentViewMode = e.target.dataset.mode;
+                    viewModeToggle.querySelector('.active').classList.remove('active');
+                    e.target.classList.add('active');
+                    drawChartForKeyword(keywordChartFilter.value);
+                }
+            });
 
             initializeApp();
         });
