@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v2.0</title>
+    <title>네이버 순위 탐정 v2.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v2.0 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v2.1 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -160,7 +160,7 @@
 </head>
 <body>
     <div class="main-container">
-        <h1>🕵️‍♂️ Rank Tracker <span>v2.0</span></h1>
+        <h1>🕵️‍♂️ Rank Tracker <span>v2.1</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -172,6 +172,10 @@
                         <button id="edit-project-btn">✏️ Edit</button>
                         <button id="delete-project-btn" style="background-color: var(--danger-color);">🗑️ Delete</button>
                     </div>
+                </div>
+
+                <div class="card">
+                    <button id="rank-check-btn">🚀 Start Tracking Project Ranks!</button>
                 </div>
 
                 <div class="card">
@@ -201,10 +205,6 @@ Keyword 2"></textarea>
             </aside>
 
             <main class="content-area">
-                <div class="card">
-                    <button id="rank-check-btn">🚀 Start Tracking Project Ranks!</button>
-                </div>
-
                 <div class="card">
                     <div class="dashboard-header">
                         <h2>📈 Rank Dashboard</h2>
