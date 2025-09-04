@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v3.1</title>
+    <title>네이버 순위 탐정 v3.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v3.1 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v3.2 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -218,7 +218,7 @@
 <body>
     <div class="main-container">
         <a href="index.html" class="home-button">🏠 홈으로</a>
-        <h1>🕵️‍♂️ 순위 추적기 <span>v3.1</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v3.2</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -360,8 +360,8 @@
             const dashboardSubtitle = document.getElementById('dashboard-subtitle');
             const downloadCsvBtn = document.getElementById('download-csv-btn');
 
-            const getProjects = () => JSON.parse(localStorage.getItem('projects_v5')) || [];
-            const saveProjects = (projs) => localStorage.setItem('projects_v5', JSON.stringify(projs));
+            const getProjects = () => JSON.parse(localStorage.getItem('projects_v6')) || [];
+            const saveProjects = (projs) => localStorage.setItem('projects_v6', JSON.stringify(projs));
             
             function initializeApp() {
                 loadApiKeys();
@@ -583,12 +583,19 @@
                         resultContent.querySelector('ul').appendChild(li);
 
                         if (rank > 0) {
-                            const productNameWithStore = item.store ? `${item.product} (${item.store})` : item.product;
-                            const existingIndex = project.rankData.findIndex(d => d.date === today && d.keyword === keyword && d.productName === productNameWithStore);
+                            const existingIndex = project.rankData.findIndex(d =>
+                                d.date === today &&
+                                d.keyword === keyword &&
+                                d.product === item.product && 
+                                d.store === (item.store || '')
+                            );
+
+                            const newData = { date: today, keyword, rank, product: item.product, store: item.store || '' };
+
                             if (existingIndex > -1) {
-                                project.rankData[existingIndex].rank = rank;
+                                project.rankData[existingIndex] = newData;
                             } else {
-                                project.rankData.push({ date: today, keyword, rank, productName: productNameWithStore });
+                                project.rankData.push(newData);
                             }
                         }
                     }
@@ -620,13 +627,14 @@
                 }
 
                 let csvContent = "\uFEFF"; 
-                csvContent += "날짜,키워드,상품,순위\n";
+                csvContent += "날짜,키워드,상품명,스토어명,순위\n";
 
                 project.rankData.forEach(d => {
                     const row = [
                         d.date,
                         d.keyword,
-                        `"${d.productName.replace(/"/g, '""')}"`,
+                        `"${(d.product || '').replace(/"/g, '""')}"`,
+                        `"${(d.store || '').replace(/"/g, '""')}"`,
                         d.rank
                     ].join(',');
                     csvContent += row + "\n";
@@ -702,19 +710,21 @@
                 if (!data || data.length === 0) return { labels: [], datasets: [] };
                 
                 const project = projects.find(p => p.id === currentProjectId);
-                const myProductName = project.storeName ? `${project.productName} (${project.storeName})` : project.productName;
+                const dataWithCombinedNames = data.map(d => ({...d, productNameWithStore: d.store ? `${d.product} (${d.store})` : d.product }));
                 
-                const filteredData = data.filter(d => d.keyword === selectedKeyword);
+                const myProductNameWithStore = project.storeName ? `${project.productName} (${project.storeName})` : project.productName;
+                
+                const filteredData = dataWithCombinedNames.filter(d => d.keyword === selectedKeyword);
                 const labels = [...new Set(filteredData.map(item => item.date))].sort();
-                const products = [...new Set(filteredData.map(item => item.productName))];
+                const products = [...new Set(filteredData.map(item => item.productNameWithStore))];
                 
                 const datasets = products.map((productName, index) => {
                     const productData = labels.map(label => {
-                        const entry = filteredData.find(d => d.date === label && d.productName === productName);
+                        const entry = filteredData.find(d => d.date === label && d.productNameWithStore === productName);
                         return entry ? entry.rank : null;
                     });
                     
-                    const isMyProduct = productName === myProductName;
+                    const isMyProduct = productName === myProductNameWithStore;
                     const color = isMyProduct ? 'hsl(210, 80%, 55%)' : `hsl(${ (index * 60) % 360 }, 60%, 65%)`;
 
                     return { 
