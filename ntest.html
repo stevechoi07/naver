@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 조종기</title>
+    <title>네이버 순위 탐정 조종기 v1.1</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>🕵️‍♂️ 네이버 순위 탐정 조종기</h1>
-        <p>Netlify 서버리스 함수를 테스트하기 위한 웹 앱입니다.</p>
+        <p>Netlify 서버리스 함수를 이용한 순위 추적 및 분석 대시보드입니다.</p>
 
         <div class="card">
             <h2>📊 시장 분석 모드</h2>
@@ -19,13 +21,27 @@
         </div>
 
         <div class="card">
-            <h2>🏆 순위 확인 모드</h2>
-            <p>내 상품이 특정 키워드로 몇 위에 있는지 정확하게 찾아냅니다.</p>
-            <input type="text" id="rank-keyword" placeholder="순위를 찾을 키워드 (예: 강아지 간식)">
+            <h2>🏆 순위 추적 모드</h2>
+            <p>내 상품이 여러 키워드에서 몇 위에 있는지 한 번에 추적하고 기록합니다.</p>
+            <!-- 다중 키워드 입력을 위해 textarea로 변경 -->
+            <textarea id="rank-keywords" rows="4" placeholder="키워드를 한 줄에 하나씩 입력하세요&#10;예: 강아지 간식&#10;수제 강아지 사료"></textarea>
             <input type="text" id="product-name" placeholder="내 상품명 (일부만 포함돼도 OK)">
             <input type="text" id="store-name" placeholder="내 스토어명 (선택 사항)">
-            <button id="rank-check-btn">내 순위 추적!</button>
+            <button id="rank-check-btn">내 순위 추적 & 기록!</button>
         </div>
+        
+        <!-- 대시보드 카드 추가 -->
+        <div class="card">
+            <h2>📈 순위 변화 대시보드</h2>
+            <p>기록된 데이터를 바탕으로 키워드별 순위 변화 추이를 확인합니다.</p>
+            <!-- 그래프가 그려질 캔버스 -->
+            <canvas id="rank-chart"></canvas>
+            <div class="dashboard-controls">
+                <button id="update-dashboard-btn">대시보드 업데이트</button>
+                <button id="clear-data-btn">기록 전체 삭제</button>
+            </div>
+        </div>
+
 
         <div id="loader" class="loader-container">
             <div class="loader"></div>
@@ -37,6 +53,12 @@
             <div id="result-content">
                 <p>이곳에 분석 및 순위 확인 결과가 표시됩니다.</p>
             </div>
+        </div>
+        
+        <!-- 개발자 디버깅 툴 -->
+        <div id="debug-container" style="display: none;">
+            <h2>🐞 개발자 디버깅 로그</h2>
+            <pre id="debug-log"></pre>
         </div>
     </div>
 
