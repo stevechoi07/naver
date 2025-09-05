@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v3.5</title>
+    <title>네이버 순위 탐정 v3.6</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v3.5 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v3.6 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -273,7 +273,7 @@
 <body>
     <div class="main-container">
         <a href="index.html" class="home-button">🏠 홈으로</a>
-        <h1>🕵️‍♂️ 순위 추적기 <span>v3.5</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v3.6</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -819,7 +819,10 @@
                     const datasets = keywords.map((keyword, index) => {
                         const keywordData = myProductData
                             .filter(d => d.keyword === keyword)
-                            .map(d => ({ x: d.timestamp, y: d.rank }));
+                            .map(d => ({ 
+                                x: mode === 'daily' ? d.timestamp.split('T')[0] : d.timestamp, 
+                                y: d.rank 
+                            }));
                         
                         const color = `hsl(${ (index * 60) % 360 }, 70%, 50%)`;
                         return { 
@@ -850,7 +853,13 @@
                 const products = [...new Set(dataWithCombinedNames.map(item => item.productNameWithStore))];
                 
                 const datasets = products.map((productName, index) => {
-                    const productData = dataWithCombinedNames.filter(d => d.productNameWithStore === productName).map(d => ({ x: d.timestamp, y: d.rank }));
+                    const productData = dataWithCombinedNames
+                        .filter(d => d.productNameWithStore === productName)
+                        .map(d => ({ 
+                            x: mode === 'daily' ? d.timestamp.split('T')[0] : d.timestamp, 
+                            y: d.rank 
+                        }));
+
                     const isMyProduct = productName === myProductNameWithStore;
                     const color = isMyProduct ? 'hsl(210, 80%, 55%)' : `hsl(${ (index * 60) % 360 }, 60%, 65%)`;
                     return { 
