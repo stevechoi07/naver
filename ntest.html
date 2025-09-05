@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v3.6</title>
+    <title>네이버 순위 탐정 v3.7</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v3.6 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v3.7 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -273,7 +273,7 @@
 <body>
     <div class="main-container">
         <a href="index.html" class="home-button">🏠 홈으로</a>
-        <h1>🕵️‍♂️ 순위 추적기 <span>v3.6</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v3.7</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -604,6 +604,32 @@
             }
 
             // --- Rank Checking ---
+            /**
+             * 어제 날짜의 마지막 순위를 찾아서 반환하는 헬퍼 함수
+             */
+            function findPreviousDayRank(project, keyword, productName, storeName) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // 오늘 날짜의 시작
+
+                // 어제 날짜의 시작과 끝
+                const yesterdayStart = new Date(today);
+                yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+                const yesterdayEnd = new Date(today);
+                yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
+                
+                const yesterdayData = (project.rankData || [])
+                    .filter(d => {
+                        const recordDate = new Date(d.timestamp);
+                        return d.keyword === keyword &&
+                               d.product === productName &&
+                               (d.store || '') === (storeName || '') &&
+                               recordDate >= yesterdayStart && recordDate < today;
+                    })
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // 최신순으로 정렬
+
+                return yesterdayData.length > 0 ? yesterdayData[0].rank : null;
+            }
+
             function updateLoaderProgress(completed, total) {
                 const percentage = total > 0 ? (completed / total) * 100 : 0;
                 progressBar.style.width = `${percentage}%`;
@@ -655,7 +681,21 @@
                         
                         const li = document.createElement('li');
                         const storeText = item.store ? ` (${item.store})` : '';
-                        li.textContent = `[${item.product}${storeText}] ${rankText}`;
+                        
+                        // '내 상품'인 경우에만 등락폭 시그널 로직 실행
+                        if (item.product === project.productName && (item.store || '') === (project.storeName || '')) {
+                            const previousRank = findPreviousDayRank(project, keyword, item.product, item.store);
+                            let signalIcon = '';
+                            if (previousRank && rank > 0) {
+                                const difference = previousRank - rank; // 순위가 낮아지는게 좋은 것
+                                if (difference >= 10) signalIcon = '🚀'; // 10계단 이상 상승
+                                else if (difference <= -10) signalIcon = '💧'; // 10계단 이상 하락
+                            }
+                            li.innerHTML = `[${item.product}${storeText}] ${rankText} ${signalIcon}`;
+                        } else {
+                            li.textContent = `[${item.product}${storeText}] ${rankText}`;
+                        }
+
                         resultContent.querySelector('ul').appendChild(li);
 
                         if (rank > 0) {
