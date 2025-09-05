@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네이버 순위 탐정 v3.4</title>
+    <title>네이버 순위 탐정 v3.5</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <style>
         /* ----------------------------------------------------------------------------- */
-        /* 🕵️‍♂️ 네이버 순위 탐정 v3.4 - style.css                                       */
+        /* 🕵️‍♂️ 네이버 순위 탐정 v3.5 - style.css                                       */
         /* ----------------------------------------------------------------------------- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
@@ -120,7 +120,7 @@
         
         label { font-weight: 500; margin-bottom: 8px; display: block; font-size: 0.9rem; color: #555; }
         
-        input[type="text"], input[type="password"], textarea, select {
+        input[type="text"], input[type="password"], input[type="number"], textarea, select {
             width: 100%;
             padding: 14px 16px;
             border: 1px solid var(--border-color);
@@ -159,6 +159,12 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 199, 83, 0.3);
         }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         #rank-check-btn {
             width: 100%;
@@ -172,6 +178,21 @@
         .button-group button.primary { background-color: var(--info-color); box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2); }
         .button-group button.primary:hover { background-color: #2980b9; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(52, 152, 219, 0.3); }
 
+        /* --- 자동 순찰 UI 스타일 --- */
+        #auto-track-controls { display: none; /* 시간별 보기에서만 보이도록 JS로 제어 */ }
+        #auto-track-status {
+            font-size: 0.9rem;
+            color: var(--info-color);
+            text-align: center;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+        .auto-track-input-group { display: flex; align-items: center; gap: 10px; }
+        .auto-track-input-group input { flex: 1; margin-bottom: 0; }
+        .auto-track-input-group label { margin-bottom: 0; white-space: nowrap;}
+        #auto-track-stop-btn { background-color: var(--danger-color); }
+        #auto-track-stop-btn:hover { background-color: #c0392b; }
+        
         #download-csv-btn {
             background-color: #fff;
             color: var(--text-color);
@@ -252,7 +273,7 @@
 <body>
     <div class="main-container">
         <a href="index.html" class="home-button">🏠 홈으로</a>
-        <h1>🕵️‍♂️ 순위 추적기 <span>v3.4</span></h1>
+        <h1>🕵️‍♂️ 순위 추적기 <span>v3.5</span></h1>
         <div class="main-layout">
             <aside class="control-panel">
                 <div class="card">
@@ -269,8 +290,23 @@
                 <div class="card">
                     <button id="rank-check-btn">🚀 START</button>
                     <hr class="card-divider">
+
+                    <div id="auto-track-controls">
+                        <h2 style="margin-bottom: 8px;">🤖 자동 순찰</h2>
+                        <p style="margin-bottom: 15px;">시간별 보기에만 적용됩니다.</p>
+                        <div class="auto-track-input-group">
+                            <input type="number" id="auto-track-interval" placeholder="5" style="max-width: 100px;">
+                            <label for="auto-track-interval">분마다 확인</label>
+                        </div>
+                        <div class="button-group" style="margin-top:10px;">
+                            <button id="auto-track-start-btn">순찰 시작</button>
+                            <button id="auto-track-stop-btn" disabled>순찰 정지</button>
+                        </div>
+                        <p id="auto-track-status"></p>
+                        <hr class="card-divider">
+                    </div>
+
                     <h2 style="margin-bottom: 25px;">📝 프로젝트 정보</h2>
-                    
                     <label for="my-product-name">내 상품</label>
                     <input type="text" id="my-product-name" placeholder="상품명">
                     <label for="store-name">내 스토어</label>
@@ -354,35 +390,34 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const MAX_REQUESTS = 50; 
+            const MAX_REQUESTS = 50;
+            const MAX_AUTO_TRACK_DURATION = 10 * 60 * 60 * 1000; // 10시간
 
             let projects = [];
             let currentProjectId = null;
             let rankChart;
-            let currentViewMode = 'daily'; // 'daily' or 'hourly'
+            let currentViewMode = 'daily';
+            let autoCheckIntervalId = null;
+            let autoCheckTimeoutId = null;
 
+            // --- DOM Elements ---
             const loader = document.getElementById('loader');
             const progressBar = document.getElementById('progress-bar');
             const progressText = document.getElementById('progress-text');
-
             const rankChartEl = document.getElementById('rank-chart').getContext('2d');
             const resultContent = document.getElementById('result-content');
-            
             const saveApiKeyBtn = document.getElementById('save-api-key-btn');
             const clientIdEl = document.getElementById('naver-client-id');
             const clientSecretEl = document.getElementById('naver-client-secret');
-
             const projectSelector = document.getElementById('project-selector');
             const newProjectBtn = document.getElementById('new-project-btn');
             const editProjectBtn = document.getElementById('edit-project-btn');
             const deleteProjectBtn = document.getElementById('delete-project-btn');
             const saveChangesLink = document.getElementById('save-changes-link');
-            
             const productNameEl = document.getElementById('my-product-name');
             const storeNameEl = document.getElementById('store-name');
             const competitorsEl = document.getElementById('competitors');
             const rankKeywordsEl = document.getElementById('rank-keywords');
-
             const projectModal = document.getElementById('project-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalProjectName = document.getElementById('modal-project-name');
@@ -392,17 +427,24 @@
             const modalKeywords = document.getElementById('modal-keywords');
             const modalCancelBtn = document.getElementById('modal-cancel-btn');
             const modalSaveBtn = document.getElementById('modal-save-btn');
-
             const rankCheckBtn = document.getElementById('rank-check-btn');
-            
             const keywordChartFilter = document.getElementById('keyword-chart-filter');
             const dashboardSubtitle = document.getElementById('dashboard-subtitle');
             const downloadCsvBtn = document.getElementById('download-csv-btn');
             const viewModeToggle = document.getElementById('view-mode-toggle');
+            
+            // --- Auto-tracking UI Elements ---
+            const autoTrackControls = document.getElementById('auto-track-controls');
+            const autoTrackIntervalEl = document.getElementById('auto-track-interval');
+            const autoTrackStartBtn = document.getElementById('auto-track-start-btn');
+            const autoTrackStopBtn = document.getElementById('auto-track-stop-btn');
+            const autoTrackStatus = document.getElementById('auto-track-status');
 
+            // --- Data Management ---
             const getProjects = () => JSON.parse(localStorage.getItem('projects_v7')) || [];
             const saveProjects = (projs) => localStorage.setItem('projects_v7', JSON.stringify(projs));
             
+            // --- Initialization ---
             function initializeApp() {
                 loadApiKeys();
                 projects = getProjects();
@@ -410,8 +452,10 @@
                 renderProjectSelector();
                 displayCurrentProjectInfo();
                 updateDashboard();
+                toggleAutoTrackUI(currentViewMode === 'hourly');
             }
 
+            // --- Project Management ---
             function parseTextToCompetitors(text) {
                 return text.split('\n').map(line => {
                     const parts = line.split('::').map(p => p.trim());
@@ -462,6 +506,7 @@
             }
             
             function handleProjectSelection() {
+                stopAutoTracking('프로젝트가 변경되어 중지됨');
                 currentProjectId = projectSelector.value;
                 localStorage.setItem('currentProjectId', currentProjectId);
                 displayCurrentProjectInfo();
@@ -485,6 +530,7 @@
             function handleDeleteProject() {
                 if (!currentProjectId || projects.length === 0) return alert('삭제할 프로젝트가 선택되지 않았습니다.');
                 if (confirm(`'${projects.find(p=>p.id===currentProjectId).name}' 프로젝트를 정말 삭제하시겠습니까? 관련 데이터가 모두 삭제됩니다.`)) {
+                    stopAutoTracking('프로젝트가 삭제되어 중지됨');
                     projects = projects.filter(p => p.id !== currentProjectId);
                     currentProjectId = projects.length > 0 ? projects[0].id : null;
                     localStorage.setItem('currentProjectId', currentProjectId);
@@ -495,6 +541,7 @@
                 }
             }
 
+            // --- Modal Handling ---
             let editingProjectId = null;
             function openModal(mode = 'new') {
                 projectModal.style.display = 'flex';
@@ -511,42 +558,27 @@
                 } else {
                     modalTitle.textContent = '새 프로젝트 만들기';
                     editingProjectId = null;
-                    modalProjectName.value = '';
-                    modalProductName.value = '';
-                    modalStoreName.value = '';
-                    modalCompetitors.value = '';
-                    modalKeywords.value = '';
+                    modalProjectName.value = ''; modalProductName.value = ''; modalStoreName.value = '';
+                    modalCompetitors.value = ''; modalKeywords.value = '';
                 }
             }
-
-            function closeModal() {
-                projectModal.style.display = 'none';
-            }
-
+            function closeModal() { projectModal.style.display = 'none'; }
             function handleSaveProject() {
                 const name = modalProjectName.value.trim();
                 const productName = modalProductName.value.trim();
                 if (!name || !productName) return alert('프로젝트 이름과 내 상품명은 필수입니다.');
 
                 const projectData = {
-                    name,
-                    productName,
-                    storeName: modalStoreName.value.trim(),
+                    name, productName, storeName: modalStoreName.value.trim(),
                     competitors: parseTextToCompetitors(modalCompetitors.value),
                     keywords: modalKeywords.value.split('\n').map(k => k.trim()).filter(Boolean),
                 };
 
                 if (editingProjectId) {
                     const projectIndex = projects.findIndex(p => p.id === editingProjectId);
-                    if (projectIndex > -1) {
-                        projects[projectIndex] = { ...projects[projectIndex], ...projectData };
-                    }
+                    if (projectIndex > -1) projects[projectIndex] = { ...projects[projectIndex], ...projectData };
                 } else {
-                    const newProject = {
-                        id: `proj_${Date.now()}`,
-                        ...projectData,
-                        rankData: []
-                    };
+                    const newProject = { id: `proj_${Date.now()}`, ...projectData, rankData: [] };
                     projects.push(newProject);
                     currentProjectId = newProject.id;
                     localStorage.setItem('currentProjectId', currentProjectId);
@@ -558,28 +590,28 @@
                 closeModal();
             }
 
+            // --- API Key Management ---
             function saveApiKeys() {
                 if(clientIdEl.value && clientSecretEl.value) {
                     localStorage.setItem('naverClientId', clientIdEl.value);
                     localStorage.setItem('naverClientSecret', clientSecretEl.value);
                     alert('API 키가 성공적으로 저장되었습니다!');
-                } else {
-                    alert('Client ID와 Client Secret을 모두 입력해주세요.');
-                }
+                } else { alert('Client ID와 Client Secret을 모두 입력해주세요.'); }
             }
-
             function loadApiKeys() {
                 clientIdEl.value = localStorage.getItem('naverClientId') || '';
                 clientSecretEl.value = localStorage.getItem('naverClientSecret') || '';
             }
 
+            // --- Rank Checking ---
             function updateLoaderProgress(completed, total) {
                 const percentage = total > 0 ? (completed / total) * 100 : 0;
                 progressBar.style.width = `${percentage}%`;
                 progressText.textContent = `처리 중... (${completed}/${total})`;
             }
 
-            async function handleRankCheck() {
+            async function handleRankCheck(isAuto = false) {
+                if (autoCheckIntervalId && !isAuto) return alert('자동 순찰이 진행 중입니다. 먼저 순찰을 정지해주세요.');
                 if (!currentProjectId) return alert('먼저 프로젝트를 선택하거나 생성해주세요.');
                 
                 const project = projects.find(p => p.id === currentProjectId);
@@ -590,31 +622,35 @@
                 const userClientSecret = localStorage.getItem('naverClientSecret');
                 if (!userClientId || !userClientSecret) return alert('API 키를 먼저 설정하고 저장해주세요.');
 
-                const productsToCheck = [
-                    { product: project.productName, store: project.storeName }, 
-                    ...(project.competitors || [])
-                ];
-                
+                const productsToCheck = [ { product: project.productName, store: project.storeName }, ...(project.competitors || []) ];
                 const totalTasks = productsToCheck.length * project.keywords.length;
 
                 if (totalTasks > MAX_REQUESTS) {
-                    return alert(`요청이 너무 많습니다! 한 번에 최대 ${MAX_REQUESTS}개까지만 조회가 가능합니다. (현재 요청: ${totalTasks}개) 키워드나 경쟁사 수를 줄여주세요.`);
+                    return alert(`요청이 너무 많습니다! 한 번에 최대 ${MAX_REQUESTS}개까지만 조회가 가능합니다. (현재 요청: ${totalTasks}개)`);
                 }
                 
                 let completedTasks = 0;
-                loader.style.display = 'flex';
-                updateLoaderProgress(completedTasks, totalTasks);
-                resultContent.innerHTML = '<ul></ul>';
+                if (!isAuto) {
+                    loader.style.display = 'flex';
+                    updateLoaderProgress(completedTasks, totalTasks);
+                }
                 
+                const now = new Date();
+                const resultHeader = `<h3>[${now.toLocaleString()}] 수사 결과</h3><ul></ul>`;
+                if (!isAuto) resultContent.innerHTML = '';
+                resultContent.insertAdjacentHTML('afterbegin', resultHeader);
+
                 for (const keyword of project.keywords) {
                     resultContent.querySelector('ul').innerHTML += `<li><strong>--- 키워드 추적 중: '${keyword}' ---</strong></li>`;
                     for (const item of productsToCheck) {
                         const rank = await fetchRankFromNetlify(keyword, item.product, item.store, userClientId, userClientSecret);
                         
-                        completedTasks++;
-                        updateLoaderProgress(completedTasks, totalTasks);
+                        if (!isAuto) {
+                            completedTasks++;
+                            updateLoaderProgress(completedTasks, totalTasks);
+                        }
                         
-                        const timestamp = new Date().toISOString();
+                        const timestamp = now.toISOString();
                         const rankText = rank > 0 ? `${rank}위` : '1000위 밖';
                         
                         const li = document.createElement('li');
@@ -628,7 +664,7 @@
                     }
                 }
                 saveProjects(projects);
-                loader.style.display = 'none';
+                if (!isAuto) loader.style.display = 'none';
                 updateDashboard();
             }
             
@@ -646,24 +682,57 @@
                 }
             }
 
+            // --- Auto-tracking ---
+            function toggleAutoTrackUI(isHourly) {
+                autoTrackControls.style.display = isHourly ? 'block' : 'none';
+            }
+
+            function startAutoTracking() {
+                const intervalMinutes = parseInt(autoTrackIntervalEl.value, 10);
+                if (isNaN(intervalMinutes) || intervalMinutes < 1) {
+                    return alert('자동 순찰 간격은 1분 이상의 숫자로 입력해주세요.');
+                }
+                
+                const intervalMs = intervalMinutes * 60 * 1000;
+                
+                autoTrackStartBtn.disabled = true;
+                autoTrackStopBtn.disabled = false;
+                autoTrackIntervalEl.disabled = true;
+                rankCheckBtn.disabled = true;
+                autoTrackStatus.textContent = `${intervalMinutes}분 간격으로 순찰을 시작합니다.`;
+
+                handleRankCheck(true);
+                autoCheckIntervalId = setInterval(() => handleRankCheck(true), intervalMs);
+
+                autoCheckTimeoutId = setTimeout(() => {
+                    stopAutoTracking('최대 10시간이 경과하여 자동으로 중지됨');
+                }, MAX_AUTO_TRACK_DURATION);
+            }
+
+            function stopAutoTracking(reason = '') {
+                if (!autoCheckIntervalId) return;
+
+                clearInterval(autoCheckIntervalId);
+                clearTimeout(autoCheckTimeoutId);
+                autoCheckIntervalId = null;
+                autoCheckTimeoutId = null;
+
+                autoTrackStartBtn.disabled = false;
+                autoTrackStopBtn.disabled = true;
+                autoTrackIntervalEl.disabled = false;
+                rankCheckBtn.disabled = false;
+                autoTrackStatus.textContent = reason ? `순찰 중지: ${reason}` : '순찰이 중지되었습니다.';
+            }
+
+            // --- Dashboard & Charting ---
             function handleDownloadCsv() {
                 if (!currentProjectId) return alert('먼저 다운로드할 프로젝트를 선택해주세요.');
                 const project = projects.find(p => p.id === currentProjectId);
-                if (!project || !project.rankData || project.rankData.length === 0) {
-                    return alert('다운로드할 순위 데이터가 없습니다.');
-                }
+                if (!project || !project.rankData || project.rankData.length === 0) return alert('다운로드할 순위 데이터가 없습니다.');
 
-                let csvContent = "\uFEFF"; 
-                csvContent += "타임스탬프,키워드,상품명,스토어명,순위\n";
-
+                let csvContent = "\uFEFF" + "타임스탬프,키워드,상품명,스토어명,순위\n";
                 project.rankData.forEach(d => {
-                    const row = [
-                        d.timestamp,
-                        d.keyword,
-                        `"${(d.product || '').replace(/"/g, '""')}"`,
-                        `"${(d.store || '').replace(/"/g, '""')}"`,
-                        d.rank
-                    ].join(',');
+                    const row = [d.timestamp, d.keyword, `"${(d.product || '').replace(/"/g, '""')}"`, `"${(d.store || '').replace(/"/g, '""')}"`, d.rank].join(',');
                     csvContent += row + "\n";
                 });
 
@@ -672,7 +741,6 @@
                 const url = URL.createObjectURL(blob);
                 link.setAttribute("href", url);
                 link.setAttribute("download", `${project.name}_순위_데이터.csv`);
-                link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -688,27 +756,19 @@
                 }
                 const project = projects.find(p => p.id === currentProjectId);
                 dashboardSubtitle.textContent = `'${project.name}' 프로젝트 대시보드`;
-
-                if (project && project.rankData && project.rankData.length > 0) {
-                    downloadCsvBtn.style.display = 'inline-flex';
-                } else {
-                    downloadCsvBtn.style.display = 'none';
-                }
-
-                const uniqueKeywords = [...new Set((project.rankData || []).map(d => d.keyword))];
+                downloadCsvBtn.style.display = (project && project.rankData && project.rankData.length > 0) ? 'inline-flex' : 'none';
                 
+                const uniqueKeywords = [...new Set((project.rankData || []).map(d => d.keyword))];
                 const currentFilterValue = keywordChartFilter.value;
-                keywordChartFilter.innerHTML = '<option value="">-- 차트를 볼 키워드 선택 --</option>';
+                
+                keywordChartFilter.innerHTML = '<option value="__ALL__">-- 전체 키워드 보기 --</option>';
                 uniqueKeywords.forEach(k => {
                     const option = document.createElement('option');
-                    option.value = k;
-                    option.textContent = k;
+                    option.value = k; option.textContent = k;
                     keywordChartFilter.appendChild(option);
                 });
                 
-                if (uniqueKeywords.includes(currentFilterValue)) {
-                    keywordChartFilter.value = currentFilterValue;
-                }
+                keywordChartFilter.value = uniqueKeywords.includes(currentFilterValue) ? currentFilterValue : '__ALL__';
                 
                 drawChartForKeyword(keywordChartFilter.value);
             }
@@ -717,41 +777,61 @@
                 const project = projects.find(p => p.id === currentProjectId);
                 if (rankChart) { rankChart.destroy(); rankChart = null; }
 
-                if (!project || !selectedKeyword) return;
+                if (!project) return;
                 
                 const chartData = processDataForChart(project.rankData, selectedKeyword, currentViewMode);
                 
                 rankChart = new Chart(rankChartEl, {
-                    type: 'line', 
-                    data: chartData,
+                    type: 'line', data: chartData,
                     options: {
                         scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    unit: currentViewMode === 'daily' ? 'day' : 'hour',
-                                    tooltipFormat: 'yyyy-MM-dd HH:mm',
-                                    displayFormats: {
-                                        day: 'yyyy-MM-dd',
-                                        hour: 'MM-dd HH:mm'
-                                    }
-                                }
-                            },
-                            y: { 
-                                reverse: true, 
-                                beginAtZero: false 
-                            } 
+                            x: { type: 'time', time: { unit: currentViewMode === 'daily' ? 'day' : 'hour', tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { day: 'yyyy-MM-dd', hour: 'MM-dd HH:mm' } } },
+                            y: { reverse: true, beginAtZero: false } 
                         } 
                     }
                 });
             }
 
             function processDataForChart(data, selectedKeyword, mode) {
-                if (!data || data.length === 0) return { labels: [], datasets: [] };
+                if (!data || data.length === 0) return { datasets: [] };
                 
                 const project = projects.find(p => p.id === currentProjectId);
-                let filteredData = data.filter(d => d.keyword === selectedKeyword);
+                const myProductName = project.productName;
+                const myStoreName = project.storeName || '';
 
+                // --- 전체 키워드 보기 로직 ---
+                if (selectedKeyword === '__ALL__') {
+                    let myProductData = data.filter(d => d.product === myProductName && (d.store || '') === myStoreName);
+                    
+                    if (mode === 'daily') {
+                        const dailyLast = {};
+                        myProductData.forEach(d => {
+                            const date = d.timestamp.split('T')[0];
+                            const key = `${date}|${d.keyword}`;
+                            if (!dailyLast[key] || new Date(d.timestamp) > new Date(dailyLast[key].timestamp)) {
+                                dailyLast[key] = d;
+                            }
+                        });
+                        myProductData = Object.values(dailyLast);
+                    }
+
+                    const keywords = [...new Set(myProductData.map(d => d.keyword))];
+                    const datasets = keywords.map((keyword, index) => {
+                        const keywordData = myProductData
+                            .filter(d => d.keyword === keyword)
+                            .map(d => ({ x: d.timestamp, y: d.rank }));
+                        
+                        const color = `hsl(${ (index * 60) % 360 }, 70%, 50%)`;
+                        return { 
+                            label: keyword, data: keywordData, borderColor: color, backgroundColor: color, 
+                            fill: false, tension: 0.1, borderWidth: 2, pointRadius: 3,
+                        };
+                    });
+                    return { datasets };
+                }
+
+                // --- 단일 키워드 보기 로직 (기존) ---
+                let filteredData = data.filter(d => d.keyword === selectedKeyword);
                 if (mode === 'daily') {
                     const dailyLast = {};
                     filteredData.forEach(d => {
@@ -765,27 +845,18 @@
                 }
 
                 const dataWithCombinedNames = filteredData.map(d => ({...d, productNameWithStore: d.store ? `${d.product} (${d.store})` : d.product }));
-                const myProductNameWithStore = project.storeName ? `${project.productName} (${project.storeName})` : project.productName;
+                const myProductNameWithStore = myStoreName ? `${myProductName} (${myStoreName})` : myProductName;
                 
                 const products = [...new Set(dataWithCombinedNames.map(item => item.productNameWithStore))];
                 
                 const datasets = products.map((productName, index) => {
-                    const productData = dataWithCombinedNames
-                        .filter(d => d.productNameWithStore === productName)
-                        .map(d => ({ x: d.timestamp, y: d.rank }));
-                    
+                    const productData = dataWithCombinedNames.filter(d => d.productNameWithStore === productName).map(d => ({ x: d.timestamp, y: d.rank }));
                     const isMyProduct = productName === myProductNameWithStore;
                     const color = isMyProduct ? 'hsl(210, 80%, 55%)' : `hsl(${ (index * 60) % 360 }, 60%, 65%)`;
-
                     return { 
-                        label: productName, 
-                        data: productData, 
-                        borderColor: color, 
-                        backgroundColor: color, 
-                        fill: false, 
-                        tension: 0.1,
-                        borderWidth: isMyProduct ? 4 : 2,
-                        pointRadius: isMyProduct ? 5 : 3,
+                        label: productName, data: productData, borderColor: color, backgroundColor: color, 
+                        fill: false, tension: 0.1,
+                        borderWidth: isMyProduct ? 4 : 2, pointRadius: isMyProduct ? 5 : 3,
                     };
                 });
                 return { datasets };
@@ -797,23 +868,29 @@
             editProjectBtn.addEventListener('click', () => openModal('edit'));
             deleteProjectBtn.addEventListener('click', handleDeleteProject);
             projectSelector.addEventListener('change', handleProjectSelection);
-            saveChangesLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                saveCurrentProjectInfo();
-            });
+            saveChangesLink.addEventListener('click', (e) => { e.preventDefault(); saveCurrentProjectInfo(); });
             modalCancelBtn.addEventListener('click', closeModal);
             modalSaveBtn.addEventListener('click', handleSaveProject);
-            rankCheckBtn.addEventListener('click', handleRankCheck);
+            rankCheckBtn.addEventListener('click', () => handleRankCheck(false));
             keywordChartFilter.addEventListener('change', (e) => drawChartForKeyword(e.target.value));
             downloadCsvBtn.addEventListener('click', handleDownloadCsv);
+
             viewModeToggle.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON') {
+                if (e.target.tagName === 'BUTTON' && !e.target.classList.contains('active')) {
                     currentViewMode = e.target.dataset.mode;
                     viewModeToggle.querySelector('.active').classList.remove('active');
                     e.target.classList.add('active');
+                    
+                    const isHourly = currentViewMode === 'hourly';
+                    toggleAutoTrackUI(isHourly);
+                    if (!isHourly) stopAutoTracking('일별 보기로 전환되어 중지됨');
+
                     drawChartForKeyword(keywordChartFilter.value);
                 }
             });
+
+            autoTrackStartBtn.addEventListener('click', startAutoTracking);
+            autoTrackStopBtn.addEventListener('click', () => stopAutoTracking('수동으로 중지됨'));
 
             initializeApp();
         });
